@@ -863,6 +863,7 @@
   var WORD_GAP = 10;   // clear space between a terminus and its word
   var TERM_REACH = 5;  // the furthest any terminus extends right of its point
   var WORD_PAD = 5;    // breathing space cut either side of the status word
+  var MIN_RUN = 12;    // shorter than this, a cut fragment is a dash, not a line
 
   function drawFlow(target, model, width, height, opts) {
     clear(target);
@@ -967,9 +968,26 @@
       gap = [wordAt - WORD_PAD, wordAt + opts.wordWidth + WORD_PAD];
     }
 
+    /* A horizontal line, minus the hole cut for the status word.
+     *
+     * A cut that would leave a fragment too short to read as a line does not
+     * leave one: the fragment is absorbed into the gap. A one pixel stroke
+     * needs to be several times its own weight before the eye reads it as a
+     * segment rather than as a mark, and the five pixel offcuts this used to
+     * leave between a word and its terminus rendered as stray dashes. On
+     * `answered` it read as a typo.
+     *
+     * The floor applies only to fragments. A line that was always short was
+     * never cut, and it is the record rather than an offcut, so it draws.
+     * The termini and the repeat marks are drawn elsewhere and are meant to
+     * be short: a cross tick and a filled square are marks, not fragments.
+     */
     function hline(cls, x1, x2, extra) {
       var runs = [[x1, x2]];
-      if (gap) {
+      var cut = false;
+
+      if (gap && gap[1] > x1 && gap[0] < x2) {
+        cut = true;
         var kept = [];
         runs.forEach(function (r) {
           if (gap[1] <= r[0] || gap[0] >= r[1]) { kept.push(r); return; }
@@ -978,8 +996,10 @@
         });
         runs = kept;
       }
+
+      var floor = cut ? MIN_RUN : 1;
       runs.forEach(function (r) {
-        if (r[1] - r[0] < 1) { return; }
+        if (r[1] - r[0] < floor) { return; }
         var attrs = { "class": cls, d: "M " + hp(r[0]) + " " + y + " L " + hp(r[1]) + " " + y };
         if (extra) { Object.keys(extra).forEach(function (k) { attrs[k] = extra[k]; }); }
         target.appendChild(svgEl("path", attrs));

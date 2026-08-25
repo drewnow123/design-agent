@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Front End Agents: drawing checks</title>
+<style>
+  html,body{margin:0;background:#0B0F0E;color:#E6EDEB;
+    font:14px/1.55 ui-sans-serif,system-ui,sans-serif}
+  #log{padding:16px 20px}
+  .ok{color:#8A9691}.bad{color:#F5D547}.head{color:#45DDD0;font-weight:600}
+  iframe{position:fixed;left:-4000px;top:0;border:0}
+</style>
+</head>
+<body>
+<div id="log">running the drawing checks...</div>
+<iframe id="f" src="../agent-console/index.html" style="width:1240px;height:900px"></iframe>
+<script>
+/* Assertions for the parts of the console that only exist once it is drawn.
+ *
+ *   python -m http.server 8788 --directory work
+ *   open http://localhost:8788/agent-console-check/
+ *
+ * The markdown renderer has its own checks in scripts/check-markdown.js,
+ * which run in node against the source. These are the ones that need a
+ * layout engine: what the drawing does at a real width, with real fonts,
+ * against the shipped sample data.
+ *
+ * Three defects this file checks for reached a shipped build, and not one of
+ * them was visible from the code:
+ *
+ *   the track ran straight through the status word, which reads as a
+ *   strikethrough on the one phrase you are hunting for;
+ *
+ *   the word for a running project sat in the NEXT column, so a project
+ *   running its first stage announced itself as running at the second;
+ *
+ *   cutting the hole for the word left five pixel offcuts between the word
+ *   and its terminus, which render as stray dashes.
+ *
+ * All three are consequences of putting text and drawing on one line, and
+ * none of them can be seen by reading either. They are checked together,
+ * permanently, for that reason.
+ */
+var MIN_RUN = 12;
+var WIDTHS = [1440, 1240, 900, 720, 375];
+var STAGES = ["strategist", "builder", "reviewer"];
+
+var lines = [], fails = 0;
+function say(s, cls) { lines.push([s, cls || ""]); }
+function ok(name, cond, detail) {
+  if (!cond) { fails++; }
+  say((cond ? "  ok    " : "  FAIL  ") + name +
+      (detail === undefined ? "" : "  [" + detail + "]"), cond ? "ok" : "bad");
+}
+function head(s) { say(s, "head"); }
+function paint() {
+  var log = document.getElementById("log");
+  log.textContent = "";
+  lines.forEach(function (l) {
+    var d = document.createElement("div");
+    d.className = l[1];
+    d.textContent = l[0];
+    log.appendChild(d);
+  });
+}
+var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+var f = document.getElementById("f");
+function doc() { return f.contentDocument; }
+function nums(p) { return p.getAttribute("d").match(/-?[\d.]+/g).map(Number); }
+
+// This page is often not the visible tab, and a tab that is not being
+// rendered never runs ResizeObserver and never fires resize. Two theme
+// toggles run the console through its own render path, which repaints the
+// geometry the same way a real resize would.
+function settle() {
+  doc().querySelector(".theme-toggle").click();
+  return sleep(180).then(function () {
+    doc().querySelector(".theme-toggle").click();
+    return sleep(240);
+  });
+}
+function atWidth(px) {
+  f.style.width = px + "px";
+  return sleep(180).then(settle);
+}
+
+function wordBox(row) { return row.querySelector(".frow-word").getBoundingClientRect(); }
+
+function collisions(row) {
+  var wb = wordBox(row), hits = [];
+  row.querySelectorAll("svg path, svg rect").forEach(function (el) {
+    var b = el.getBoundingClientRect();
+    if (b.right > wb.left && b.left < wb.right && b.bottom > wb.top && b.top < wb.bottom) {
+      hits.push(el.getAttribute("class"));
+    }
+  });
+  var seg = row.querySelector(".seg-window");
+  if (seg) {
+    var sb = seg.getBoundingClientRect();
+    if (sb.right > wb.left && sb.left < wb.right && sb.bottom > wb.top && sb.top < wb.bottom) {
+      hits.push("seg-window");
+    }
+  }
+  return hits;
+}
+
+// Only the lines. Termini and repeat marks are drawn elsewhere and are marks
+// rather than segments: they are supposed to be short.
+function runLengths(row) {
+  var out = [];
+  row.querySelectorAll("path.track-line, path.thread-line").forEach(function (p) {
+    var n = nums(p);
+    if (Math.abs(n[1] - n[3]) > 0.01) { return; }   // the phone ticks are vertical
+    out.push({ cls: p.getAttribute("class"), len: Math.abs(n[2] - n[0]) });
+  });
+  return out;
+}
+
+function columns() {
+  var track = doc().querySelector(".frow-track");
+  if (!track) { return null; }
+  var tb = track.getBoundingClientRect();
+  var cells = [].slice.call(doc().querySelectorAll(".fhead-cell"));
+  if (cells.length < 5) { return null; }
+  var cols = cells.slice(1, 4).map(function (c) {
+    var b = c.getBoundingClientRect();
+    return [b.left, b.right];
+  });
+  // Headers are hidden on a phone, and a mismatch would mean the two grids
+  // have drifted, which is itself checked below.
+  if (Math.abs((cols[2][1] - cols[0][0]) - tb.width) > 2) { return null; }
+  return cols;
+}
+
+function terminusX(row) {
+  var t = row.querySelector("path.term-line") || row.querySelector("rect.term-square");
+  if (t) { var b = t.getBoundingClientRect(); return (b.left + b.right) / 2; }
+  var th = [].slice.call(row.querySelectorAll("path.thread-line"));
+  if (!th.length) { return null; }
+  return Math.max.apply(null, th.map(function (p) {
+    return p.getBoundingClientRect().right;
+  }));
+}
+
+function run() {
+  var before = null;
+
+  return atWidth(1240).then(function () {
+    before = {
+      term: doc().querySelectorAll("path.term-line, rect.term-square").length,
+      marks: doc().querySelectorAll("path.repeat-mark").length
+    };
+    var chain = Promise.resolve();
+    WIDTHS.forEach(function (px) {
+      chain = chain.then(function () { return atWidth(px); }).then(function () {
+        head(px + "px");
+        var rows = [].slice.call(doc().querySelectorAll(".frow"));
+        var cols = columns();
+        var track = doc().querySelector(".frow-track").getBoundingClientRect();
+        var behind = 0, shortest = Infinity, where = "";
+
+        rows.forEach(function (r) {
+          var name = r.querySelector(".frow-name").textContent;
+          var state = r.getAttribute("data-state");
+          behind += collisions(r).length;
+
+          runLengths(r).forEach(function (s) {
+            if (s.len < shortest) { shortest = s.len; where = name + " " + s.cls; }
+          });
+
+          if (!cols) { return; }
+          var idx, wb = wordBox(r);
+          if (state === "running") {
+            var sb = r.querySelector(".seg-window").getBoundingClientRect();
+            idx = cols.findIndex(function (c) { return sb.left >= c[0] - 1 && sb.left < c[1]; });
+          } else {
+            var tx = terminusX(r);
+            idx = cols.findIndex(function (c) { return tx > c[0] + 0.5 && tx <= c[1] + 0.5; });
+          }
+          if (idx < 0) { return; }
+
+          var ends = [].slice.call(r.querySelectorAll("path.track-line"))
+            .map(function (pp) { return pp.getBoundingClientRect().right; })
+            .concat([track.left]);
+          var trackEndX = Math.max.apply(null, ends);
+          if (wb.left >= trackEndX - 1) {
+            ok(name + " (" + state + "): word is past the end of the track",
+               wb.right <= track.right + 1.5);
+            return;
+          }
+          ok(name + " (" + state + "): word stays inside " + STAGES[idx],
+             wb.right <= cols[idx][1] + 1.5,
+             Math.round(wb.left - track.left) + " to " + Math.round(wb.right - track.left) +
+             " vs " + Math.round(cols[idx][0] - track.left) + " to " +
+             Math.round(cols[idx][1] - track.left));
+          for (var k = idx + 1; k < cols.length; k++) {
+            ok(name + ": nothing inside " + STAGES[k], wb.right <= cols[k][0] + 1.5);
+          }
+        });
+
+        ok("nothing is drawn behind any status word", behind === 0, behind);
+        ok("no drawn line is shorter than " + MIN_RUN + "px", shortest >= MIN_RUN,
+           shortest === Infinity ? "no lines" :
+           Math.round(shortest) + "px on " + where);
+        if (!cols) { say("        (column headers are hidden at this width)", "ok"); }
+      });
+    });
+    return chain;
+  }).then(function () {
+    return atWidth(1240);
+  }).then(function () {
+    head("the drawing, at 1240px");
+    var rows = [].slice.call(doc().querySelectorAll(".frow"));
+    var bad = [], coords = 0, closed = 0;
+
+    doc().querySelectorAll(
+      "path.track-line, path.thread-line, path.term-line, path.repeat-mark"
+    ).forEach(function (p) {
+      var cls = p.getAttribute("class"), pts = [];
+      p.getAttribute("d").split(/(?=[MLA])/).forEach(function (seg) {
+        var m = seg.trim().match(/^([MLA])\s+(.*)$/);
+        if (!m || m[1] === "A") { return; }
+        var v = m[2].trim().split(/\s+/).map(Number);
+        pts.push([v[0], v[1]]);
+      });
+      var diag = false;
+      for (var i = 1; i < pts.length; i++) {
+        if (Math.abs(pts[i][0] - pts[i - 1][0]) > 0.01 &&
+            Math.abs(pts[i][1] - pts[i - 1][1]) > 0.01) { diag = true; }
+      }
+      if (diag) { return; }   // the diagonal cut keeps its antialiasing
+      pts.forEach(function (v) {
+        coords += 2;
+        if (Math.abs(v[0] % 1) !== 0.5) { bad.push(cls + " x=" + v[0]); }
+        if (Math.abs(v[1] % 1) !== 0.5) { bad.push(cls + " y=" + v[1]); }
+      });
+    });
+    ok("every axis aligned coordinate sits on a half pixel", bad.length === 0,
+       coords + " coordinates" + (bad.length ? " " + JSON.stringify(bad.slice(0, 4)) : ""));
+
+    rows.forEach(function (r) {
+      var name = r.querySelector(".frow-name").textContent;
+      var paths = [].slice.call(r.querySelectorAll("path.thread-line, path.repeat-mark"));
+      var ends = paths.map(function (p) {
+        var n = nums(p);
+        return [[n[0], n[1]], [n[2], n[3]]];
+      });
+      for (var i = 0; i < ends.length; i++) {
+        for (var j = i + 1; j < ends.length; j++) {
+          var near = function (a, b) {
+            return Math.abs(a[0] - b[0]) < 3 && Math.abs(a[1] - b[1]) < 3;
+          };
+          var shared = 0;
+          [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(function (pr) {
+            if (near(ends[i][pr[0]], ends[j][pr[1]])) { shared++; }
+          });
+          if (shared >= 2) { closed++; }
+        }
+      }
+      var rect = r.getBoundingClientRect(), top = Infinity, bot = -Infinity;
+      r.querySelectorAll("svg path, svg rect").forEach(function (p) {
+        var b = p.getBoundingClientRect();
+        top = Math.min(top, b.top);
+        bot = Math.max(bot, b.bottom);
+      });
+      ok(name + ": the drawing stays inside its row",
+         top >= rect.top - 0.5 && bot <= rect.bottom + 0.5);
+      ok(name + ": one thread lane",
+         new Set(paths.filter(function (p) {
+           return p.getAttribute("class").indexOf("thread-line") === 0;
+         }).map(function (p) { return nums(p)[1]; })).size <= 1);
+    });
+    ok("no two drawn paths close a circuit", closed === 0, closed);
+
+    var trackW = doc().querySelector(".frow-track").getBoundingClientRect().width;
+    var cells = [].slice.call(doc().querySelectorAll(".fhead-cell")).slice(1, 4);
+    var span = cells[2].getBoundingClientRect().right - cells[0].getBoundingClientRect().left;
+    ok("the header grid and the row grid divide the same width",
+       Math.abs(span - trackW) < 1.5, span.toFixed(1) + " vs " + trackW.toFixed(1));
+
+    var after = {
+      term: doc().querySelectorAll("path.term-line, rect.term-square").length,
+      marks: doc().querySelectorAll("path.repeat-mark").length
+    };
+    ok("the fragment floor swallowed no terminus", after.term === before.term,
+       before.term + " before, " + after.term + " after");
+    ok("the fragment floor swallowed no repeat mark", after.marks === before.marks,
+       before.marks + " before, " + after.marks + " after");
+
+    head(fails === 0 ? "ALL DRAWING CHECKS PASS" : fails + " CHECKS FAILED");
+    f.style.width = "1240px";
+    paint();
+    console.log("[DRAWING] " + (fails === 0 ? "ALL PASS" : fails + " FAILED") + "\n" +
+      lines.map(function (l) { return l[0]; }).join("\n"));
+  });
+}
+
+f.addEventListener("load", function () {
+  sleep(1600).then(run).catch(function (e) {
+    say("HARNESS ERROR " + e.message, "bad");
+    say(String(e.stack), "bad");
+    paint();
+    console.log("[DRAWING] HARNESS ERROR " + e.message);
+  });
+  setInterval(paint, 700);
+});
+</script>
+</body>
+</html>

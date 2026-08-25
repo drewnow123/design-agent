@@ -430,6 +430,37 @@ a blank line, the block types that must end a list, hex swatches, link forms
 that are deliberately not supported, and every scheme `safeHref` has to
 refuse.
 
+## Checking the drawing
+
+```
+python -m http.server 8788 --directory work
+open http://localhost:8788/agent-console-check/
+```
+
+`work/agent-console-check/` loads this console in an iframe at 1440, 1240,
+900, 720 and 375 and measures what it actually drew. It is the other half of
+the markdown checks: those run in node against the source, and these need a
+layout engine, real fonts and the shipped sample data.
+
+It asserts that nothing is drawn behind a status word, that every word stays
+inside the column its state refers to or past the end of the track, that no
+drawn line is shorter than twelve pixels, that every axis aligned coordinate
+sits on a half pixel, that no two paths close a circuit, that the header grid
+and the row grid divide the same width, and that the fragment floor swallowed
+no terminus or repeat mark.
+
+Every one of those is there because the defect it checks for reached a
+shipped build and none of them could be seen by reading the code:
+
+- the track ran straight through the status word, which renders as a
+  strikethrough on the one phrase you are looking for;
+- the word for a running project sat in the next column, so a project running
+  its first stage announced itself as running at the second;
+- cutting the hole for the word left five pixel offcuts between the word and
+  its terminus, which render as stray dashes;
+- the header grid was sixteen pixels narrower than the row grid, so every
+  column label sat about eleven pixels left of the column it named.
+
 ## The other two routes
 
 `GET /api/state` returns the file, 404 when it does not exist, or 500 when it
