@@ -270,6 +270,54 @@ def cmd_note(args) -> int:
     return 0
 
 
+def cmd_forget(args) -> int:
+    """Remove a project from the board entirely.
+
+    Every other command records something. This one un-records, which is why it
+    is the only command that asks before it acts: the register is a record, and
+    a decision the operator made is not usually a thing to delete. It exists
+    because a board also collects throwaway projects, and a register nobody
+    trusts because it is full of abandoned rows is worse than a shorter one.
+
+    Draining the project's answers first is deliberate. Removing the project
+    while its responses sit unread in the inbox would leave the orchestrator
+    holding decisions for something that no longer exists.
+    """
+    with state_lock():
+        state = load()
+        project = project_for(state, args.slug)
+        events = len(project.get("history", []))
+        if not args.yes:
+            held = " It is waiting on you." if project.get("state") in ("held", "stopped") else ""
+            plural = "" if events == 1 else "s"
+            print(f"{args.slug}: {project.get('state')}, {events} recorded event{plural}.{held}")
+            print("this removes it from the board and cannot be undone.")
+            answer = input("type the slug to confirm: ").strip()
+            if answer != args.slug:
+                print("left alone")
+                return 1
+        state["projects"] = [x for x in state.get("projects", [])
+                             if x.get("slug") != args.slug]
+        write_state(state)
+
+    stale = []
+    if RESPONSES.is_dir():
+        for path in RESPONSES.glob("*.json"):
+            try:
+                if json.loads(path.read_text(encoding="utf-8")).get("project") == args.slug:
+                    stale.append(path)
+            except ValueError:
+                continue
+    for path in stale:
+        path.unlink()
+
+    tail = ""
+    if stale:
+        tail = f", and {len(stale)} unread answer{'' if len(stale) == 1 else 's'} discarded"
+    print(f"{args.slug}: forgotten, {events} event{'' if events == 1 else 's'}{tail}")
+    return 0
+
+
 def cmd_drain(args) -> int:
     """Read the answers the operator gave, oldest first.
 
@@ -387,6 +435,12 @@ def main() -> int:
                    help="mark this decision as sending work back, which is "
                         "what redraws the thread from the builder column")
     p.set_defaults(func=cmd_note)
+
+    p = sub.add_parser("forget", help="remove a project from the board")
+    p.add_argument("slug")
+    p.add_argument("--yes", action="store_true",
+                   help="skip the confirmation, for scripts")
+    p.set_defaults(func=cmd_forget)
 
     p = sub.add_parser("drain", help="read the answers inbox")
     p.add_argument("--archive", action="store_true",
