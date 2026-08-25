@@ -1,0 +1,9 @@
+# Live pipeline state and the responses the console writes. Runtime, not source.
+.handoff/
+
+# Python bytecode from scripts/. Generated, not source.
+__pycache__/
+
+# Local env / secrets
+.dev.vars
+.env

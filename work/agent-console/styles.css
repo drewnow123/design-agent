@@ -1,0 +1,1447 @@
+/* Handoff. Console for a pipeline whose normal condition is stopped.
+   Spacing is six steps: 4 / 8 / 14 / 22 / 36 / 56. Two radii: 0 and 5px.
+   No shadow declarations anywhere. The focus ring is an outline. */
+
+/* ---------------------------------------------------------------- fonts */
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  src: url("fonts/schibsted-grotesk-var-latin.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Literata";
+  src: url("fonts/literata-var-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Literata";
+  src: url("fonts/literata-italic-var-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Spline Sans Mono";
+  src: url("fonts/spline-sans-mono-var-latin.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --------------------------------------------------------------- tokens */
+
+:root {
+  /* six spacing steps, and nothing else */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 14px;
+  --s4: 22px;
+  --s5: 36px;
+  --s6: 56px;
+
+  --radius: 5px;
+  --gutter: 48px;
+  --column: 1080px;
+  --measure: 66ch;
+  --measure-wide: 880px;
+
+  --font-console: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-doc: "Literata", Georgia, "Times New Roman", serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* dark, designed first */
+  --surface: #0E1210;
+  --surface-raised: #151A18;
+  --surface-sunk: #0A0D0C;
+  --ink: #E8EDEA;
+  --ink-2: #A3ADA8;
+  --ink-3: #7B8681;
+  --rule: #232A27;
+  --rule-live: #38423E;
+  --hold-field: #211E0C;
+  --hold-ink: #F5D547;
+  --hold-ink-dim: #A8901F;
+  --hold-mark: #F5D547;
+  --focus: #F5D547;
+  --focus-on-field: #F5D547;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --surface: #EFF3F1;
+  --surface-raised: #FAFCFB;
+  --surface-sunk: #E4EAE7;
+  --ink: #131715;
+  --ink-2: #4E5854;
+  --ink-3: #79837F;
+  --rule: #D8E0DC;
+  --rule-live: #B4BFBA;
+  --hold-field: #FFE873;
+  --hold-ink: #1A1400;
+  --hold-ink-dim: #8A6D00;
+  --hold-mark: #8A6D00;
+  --focus: #8A6D00;
+  /* the yellow ring is invisible on the light yellow field, so the field
+     gets its own ring token. */
+  --focus-on-field: #1A1400;
+
+  color-scheme: light;
+}
+
+/* ---------------------------------------------------------------- reset */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--surface);
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-console);
+  font-size: 15px;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  font-optical-sizing: auto;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure,
+blockquote,
+fieldset,
+legend {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* The ring is an outline, never a shadow. Browsers already round an outline
+   to the element's own border-radius, so there is no third radius here. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.holdfield :focus-visible {
+  outline-color: var(--focus-on-field);
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: var(--s2) var(--s3);
+  background: var(--surface-raised);
+  color: var(--ink);
+  z-index: 4;
+}
+
+.skip:focus {
+  left: var(--s3);
+  top: var(--s2);
+}
+
+/* --------------------------------------------------------------- topbar */
+
+.topbar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.topbar-inner {
+  max-width: var(--column);
+  margin: 0 auto;
+  height: 52px;
+  padding: 0 var(--s4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.wordmark {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.wordmark-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.heldcount {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.heldcount.is-held {
+  color: var(--hold-mark);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- shell */
+
+.shell {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: 0 var(--s4) var(--s6);
+}
+
+/* Every band is the same two-track grid: the gutter carries the spine, the
+   content sits beside it. Bands never take vertical margin, only padding,
+   so the rule stays continuous where it should be continuous. */
+.band {
+  display: grid;
+  grid-template-columns: var(--gutter) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+/* ---------------------------------------------------- the spine and rule */
+
+.spine {
+  position: relative;
+}
+
+.spine::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--rule-live);
+}
+
+/* held: the rule stops, and a cross-bar closes it */
+.spine[data-state="held"]::before {
+  bottom: 50%;
+}
+
+.spine[data-state="held"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+  background: var(--hold-mark);
+}
+
+/* stopped: the rule ends in a diagonal cut */
+.spine[data-state="stopped"]::before {
+  bottom: 50%;
+}
+
+.spine[data-state="stopped"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 2px;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  background: var(--hold-mark);
+}
+
+/* clear: the rule runs to the end and terminates in a filled square */
+.spine[data-state="clear"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  background: var(--ink-3);
+}
+
+/* running: a segment travels down the span. The only loop in the console. */
+.spine[data-state="running"]::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 1px);   /* centering a 2px segment, not a spacing step */
+  top: 0;
+  width: 2px;
+  height: 30%;
+  background: var(--ink-2);
+  animation: travel 2s linear infinite;
+}
+
+@keyframes travel {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(333%);
+  }
+}
+
+/* the rule closing: the payoff when a decision lands */
+.spine.is-releasing::before {
+  animation: close-rule 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.spine.is-releasing::after {
+  opacity: 0;
+  transition: opacity 160ms linear;
+}
+
+@keyframes close-rule {
+  from {
+    bottom: 50%;
+  }
+  to {
+    bottom: 0;
+  }
+}
+
+/* ------------------------------------------------------ zone 1, your move */
+
+.zone1 {
+  padding-top: var(--s5);
+}
+
+/* No overflow clipping here. It was doing one job, hiding the full-bleed
+   foot's square corners against the field's 5px radius, and it was silently
+   doing a second: making .ask the scroll container for the sticky response
+   bar, so the bar could never pin to the viewport at 375. The foot rounds
+   its own bottom corners instead, and the field stays unclipped. */
+.ask {
+  background: var(--hold-field);
+  color: var(--hold-ink);
+  border-radius: var(--radius);
+  padding: var(--s4) var(--s5) 0;
+}
+
+.ask.is-stopped {
+  border: 1px solid var(--hold-ink-dim);
+}
+
+.ask.is-draining {
+  animation: drain 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drain {
+  to {
+    background: var(--surface);
+    color: var(--ink);
+  }
+}
+
+.ask-headline {
+  font-size: 27px;
+  line-height: 33px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  max-width: 30ch;
+}
+
+.ask-meta {
+  margin-top: var(--s2);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--hold-ink);
+  opacity: 0.78;
+}
+
+.ask-notice {
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--hold-ink-dim);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.ask-body {
+  margin-top: var(--s4);
+}
+
+/* the ask keeps its own reading surface, so the document is visibly a
+   different material from the console holding it */
+/* The reading surface exists for one thing only: a direction document, which
+   is genuinely a different material from the console around it. Every other
+   ask shape sits on .ask-plain, directly on the field, because the held field
+   is the only bounded surface in this console and two nested boundaries mean
+   neither of them reads as one. */
+.ask-surface {
+  background: var(--surface-raised);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: var(--s5);
+  margin-top: var(--s4);
+}
+
+.ask-plain {
+  color: inherit;
+}
+
+.ask-foot {
+  margin-top: var(--s4);
+  margin-left: calc(-1 * var(--s5));
+  margin-right: calc(-1 * var(--s5));
+  padding: var(--s3) var(--s5);
+  border-top: 1px solid var(--hold-ink-dim);
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+.ask-withrail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s5);
+}
+
+/* --------------------------------------------------------------- the rail */
+
+.rail {
+  display: none;
+}
+
+.rail-title {
+  font-size: 11.5px;
+  line-height: 14px;
+  font-weight: 550;
+  letter-spacing: 0.015em;
+  color: var(--ink-3);
+}
+
+.rail-list {
+  margin-top: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.rail-item {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.rail-item:hover {
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------- controls */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.control {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 120ms linear, transform 60ms linear;
+}
+
+.control:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.control:active {
+  transform: translateY(1px);
+}
+
+.control[disabled] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.control[disabled]:hover {
+  background: none;
+}
+
+.control-quiet {
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: 1px;
+}
+
+.key {
+  font-size: 11.5px;
+  line-height: 14px;
+  font-weight: 550;
+  letter-spacing: 0.015em;
+  opacity: 0.66;
+  font-variant-numeric: tabular-nums;
+}
+
+.send-row {
+  margin-top: var(--s3);
+}
+
+.control-wide {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  padding: var(--s3);
+}
+
+/* text you write is a document too, so you write it in the document face */
+.write {
+  display: block;
+  width: 100%;
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--surface-sunk);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--font-doc);
+  font-size: 16.5px;
+  line-height: 1.62;
+  resize: vertical;
+}
+
+.write::placeholder {
+  color: var(--ink-3);
+}
+
+textarea.write {
+  min-height: 132px;
+}
+
+.write-label {
+  display: block;
+  margin-top: var(--s4);
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 550;
+}
+
+.pending {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------ the document, Literata */
+
+.doc {
+  font-family: var(--font-doc);
+  /* inherits --ink inside .ask-surface, and --hold-ink on the field */
+  color: inherit;
+  max-width: var(--measure-wide);
+}
+
+.doc > * {
+  max-width: var(--measure);
+}
+
+.doc-h1 {
+  font-family: var(--font-doc);
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.doc-h2 {
+  font-family: var(--font-doc);
+  font-size: 21px;
+  line-height: 28px;
+  font-weight: 600;
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--rule);
+}
+
+.doc-h3 {
+  font-family: var(--font-doc);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+  margin-top: var(--s4);
+}
+
+.doc-p {
+  font-size: 16.5px;
+  line-height: 1.62;
+  font-weight: 400;
+  margin-top: var(--s3);
+}
+
+.doc > .doc-h1:first-child,
+.doc > .doc-h2:first-child,
+.doc > .doc-p:first-child {
+  margin-top: 0;
+}
+
+.doc > .doc-h2:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.doc-list {
+  margin-top: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.doc-li {
+  position: relative;
+  padding-left: var(--s4);
+  font-size: 16.5px;
+  line-height: 1.62;
+}
+
+.doc-li::before {
+  content: attr(data-marker);
+  position: absolute;
+  left: 0;
+  color: inherit;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-quote {
+  margin-top: var(--s3);
+  padding-left: var(--s3);
+  border-left: 1px solid var(--rule-live);
+  font-size: 16.5px;
+  line-height: 1.62;
+  font-style: italic;
+}
+
+.doc-code {
+  max-width: var(--measure-wide);
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--surface-sunk);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-weight: 400;
+}
+
+.doc-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: 1px;
+}
+
+/* Tables break the measure to the right. The left text edge never moves. */
+.doc-tablewrap {
+  max-width: var(--measure-wide);
+  margin-top: var(--s4);
+  overflow-x: auto;
+}
+
+.doc-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-table th {
+  font-family: var(--font-console);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 550;
+  letter-spacing: 0.005em;
+  text-align: left;
+  padding: 0 var(--s4) var(--s2) 0;
+  border-bottom: 1px solid var(--rule-live);
+  white-space: nowrap;
+}
+
+.doc-table td {
+  font-family: var(--font-doc);
+  font-size: 14.5px;
+  line-height: 1.45;
+  font-weight: 400;
+  padding: var(--s2) var(--s4) var(--s2) 0;
+  vertical-align: top;
+}
+
+.doc-table th:last-child,
+.doc-table td:last-child {
+  padding-right: 0;
+}
+
+/* row hairlines only once the table is long enough to need them */
+.doc-table.rows-many tbody tr + tr td {
+  border-top: 1px solid var(--rule);
+}
+
+/* the console understands the document it is being asked to approve */
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: var(--s2);
+  vertical-align: -1px;
+  /* An inset outline keeps the square 12px while still giving a value that
+     matches the surface an edge. An outline is not a shadow. */
+  outline: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  outline-offset: -1px;
+  border-radius: 0;
+}
+
+/* --------------------------------------------------------- build preview */
+
+.preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.preview-widths {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s2);
+  color: inherit;
+  opacity: 0.62;
+}
+
+.width-pick {
+  cursor: pointer;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.width-pick[aria-pressed="true"] {
+  opacity: 1;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+/* Between roughly 860 and 1100px the 720 setting is wider than the column.
+   Scroll rather than clip: silently cropping a build he is about to approve
+   is the same objection the direction raises against the phone iframe. */
+.preview-frame {
+  margin-top: var(--s3);
+  background: var(--surface-sunk);
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: var(--radius);
+  overflow: auto;
+}
+
+.preview-frame iframe {
+  display: block;
+  border: 0;
+  width: 100%;
+  height: 460px;
+  background: #fff;
+}
+
+.preview-frame[data-width="375"] iframe {
+  width: 375px;
+}
+
+.preview-frame[data-width="720"] iframe {
+  width: 720px;
+}
+
+.changed {
+  margin-top: var(--s4);
+}
+
+/* -------------------------------------------------------------- findings */
+
+.findings {
+  border: 0;
+}
+
+.findings-legend {
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 550;
+  color: inherit;
+  opacity: 0.76;
+}
+
+.finding {
+  display: grid;
+  grid-template-columns: 20px 108px minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: start;
+  padding: var(--s3) 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.finding:first-of-type {
+  border-top: 0;
+}
+
+.finding input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: currentColor;
+  cursor: pointer;
+}
+
+.finding-sev {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 550;
+  letter-spacing: 0.005em;
+  color: inherit;
+  cursor: pointer;
+}
+
+.finding-sev[data-sev="nitpick"],
+.finding-sev[data-sev="worth fixing"] {
+  font-weight: 500;
+  opacity: 0.72;
+}
+
+.finding-text {
+  font-family: var(--font-doc);
+  font-size: 16.5px;
+  line-height: 1.62;
+  max-width: 72ch;
+}
+
+.finding-desc {
+  display: block;
+  cursor: pointer;
+}
+
+.finding-where {
+  display: block;
+  margin-top: var(--s1);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  color: inherit;
+  opacity: 0.66;
+}
+
+/* -------------------------------------------------------------- question */
+
+.question {
+  font-family: var(--font-doc);
+  font-size: 21px;
+  line-height: 28px;
+  font-weight: 600;
+  max-width: 60ch;
+}
+
+.question-note {
+  font-family: var(--font-doc);
+  font-size: 14px;
+  line-height: 1.5;
+  font-style: italic;
+  color: inherit;
+  opacity: 0.78;
+  margin-top: var(--s2);
+  max-width: 60ch;
+}
+
+.options {
+  margin-top: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  max-width: 60ch;
+}
+
+/* ---------------------------------------------------- more held, promotion */
+
+.moreheld {
+  padding-top: var(--s4);
+}
+
+.moreheld-count {
+  font-size: 11.5px;
+  line-height: 14px;
+  font-weight: 550;
+  letter-spacing: 0.015em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.moreheld-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+  width: 100%;
+  padding: var(--s2) 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The promotion is the next held ask rising into Zone 1, and it is added by
+   app.js at the moment of promotion only. Sitting unconditionally on the
+   compact list, it was both the wrong element and a fade-in on first paint,
+   which the motion section bans by name. Transform only, no opacity. */
+.ask.is-promoting {
+  animation: promote 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes promote {
+  from {
+    transform: translateY(10px);
+  }
+}
+
+.moreheld-name {
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+}
+
+.moreheld-what {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------- the line */
+
+.line-head {
+  padding-top: var(--s6);
+  padding-bottom: var(--s2);
+}
+
+.line-title {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.line-rows {
+  border-top: 1px solid var(--rule);
+}
+
+.reg {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px 200px;
+  gap: var(--s3);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--s3) 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  border-bottom: 1px solid var(--rule);
+  transition: background 120ms linear;
+}
+
+.reg:hover,
+.reg.is-cursor {
+  background: var(--surface-raised);
+}
+
+/* .reg.is-cursor is (0,2,0) and :focus-visible is (0,1,0), so without the
+   :not() the cursor hairline replaced the focus ring on the eight primary
+   controls of the board the moment one of them was focused. */
+.reg.is-cursor:not(:focus-visible) {
+  outline: 1px solid var(--rule-live);
+  outline-offset: -1px;
+}
+
+.reg-name {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+}
+
+.reg-state,
+.reg-stage {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.reg-stage {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* The clear row's third column is a sentence the console wrote, not a machine
+   literal, so it stays in the console voice. */
+.reg-summary {
+  font-family: var(--font-console);
+  font-size: 13px;
+  letter-spacing: 0.005em;
+}
+
+.reg[data-state="clear"] .reg-name,
+.reg[data-state="clear"] .reg-state {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.reg[data-state="held"] .reg-state,
+.reg[data-state="stopped"] .reg-state {
+  color: var(--hold-mark);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------- calm and empty states */
+
+.calm {
+  padding-top: var(--s5);
+}
+
+.calm-line {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.calm-sub {
+  margin-top: var(--s2);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.empty {
+  padding-top: var(--s6);
+}
+
+.empty-line {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.empty-sub {
+  margin-top: var(--s2);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink-2);
+  max-width: 58ch;
+}
+
+/* ------------------------------------------------------------- project view */
+
+.back {
+  display: inline-block;
+  padding-top: var(--s5);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.proj-head {
+  padding-top: var(--s3);
+  padding-bottom: var(--s4);
+}
+
+.proj-name {
+  font-size: 27px;
+  line-height: 33px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.proj-state {
+  margin-top: var(--s2);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.proj-state .mono {
+  color: var(--ink-3);
+}
+
+.hist-title {
+  padding-top: var(--s4);
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 550;
+  color: var(--ink-2);
+}
+
+.hist {
+  padding-top: var(--s3);
+  padding-bottom: var(--s6);
+}
+
+.hist-row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  gap: var(--s3);
+  align-items: baseline;
+  padding: var(--s2) 0;
+}
+
+.hist-at {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.hist-what {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--ink-2);
+}
+
+/* your lines are set in the document face, so you can see your own hand */
+.hist-row[data-kind="decision"] .hist-what {
+  font-family: var(--font-doc);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.hist-detail {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.hist-quote {
+  grid-column: 2 / -1;
+  margin-top: var(--s1);
+  padding-left: var(--s3);
+  border-left: 1px solid var(--rule-live);
+  font-family: var(--font-doc);
+  font-size: 15px;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+/* ---------------------------------------------------------------- footer */
+
+.foot {
+  padding-top: var(--s5);
+}
+
+.foot-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.theme-toggle {
+  cursor: pointer;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+}
+
+.source-note {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ wide, rail */
+
+@media (min-width: 1100px) {
+  .rail {
+    display: block;
+    padding-top: var(--s1);
+  }
+
+  .ask-withrail {
+    grid-template-columns: minmax(0, 1fr) 172px;
+  }
+}
+
+/* --------------------------------------------------------- half width, 720 */
+
+@media (max-width: 860px) {
+  .reg {
+    grid-template-columns: minmax(0, 1fr) 168px;
+    row-gap: var(--s1);
+  }
+
+  .reg-stage {
+    grid-column: 1 / -1;
+  }
+
+  .ask {
+    padding-left: var(--s4);
+    padding-right: var(--s4);
+  }
+
+  .ask-surface {
+    padding: var(--s4);
+  }
+
+  .ask-foot {
+    margin-left: calc(-1 * var(--s4));
+    margin-right: calc(-1 * var(--s4));
+    padding-left: var(--s4);
+    padding-right: var(--s4);
+  }
+}
+
+/* ----------------------------------------------------------------- phone */
+
+@media (max-width: 560px) {
+  :root {
+    --gutter: 20px;
+  }
+
+  .shell,
+  .topbar-inner {
+    padding-left: var(--s3);
+    padding-right: var(--s3);
+  }
+
+  .ask-headline {
+    font-size: 21px;
+    line-height: 27px;
+  }
+
+  /* Every inset costs measure, and at 375 the insets were costing more than
+     the 15.5px prose size was buying. The field keeps a narrow margin, and
+     the document's reading surface goes full bleed inside it: it still reads
+     as a different material because of its ground, without paying twice for
+     a boundary. Measure goes from roughly 31 characters to roughly 38. */
+  .ask {
+    padding-left: var(--s3);
+    padding-right: var(--s3);
+  }
+
+  .ask-surface {
+    margin-left: calc(-1 * var(--s3));
+    margin-right: calc(-1 * var(--s3));
+    padding: var(--s3);
+    border-radius: 0;
+  }
+
+  .ask-foot {
+    margin-left: calc(-1 * var(--s3));
+    margin-right: calc(-1 * var(--s3));
+    padding-left: var(--s3);
+    padding-right: var(--s3);
+  }
+
+  .doc-p,
+  .doc-li,
+  .doc-quote,
+  .finding-text {
+    font-size: 15.5px;
+  }
+
+  .doc > * {
+    max-width: none;
+  }
+
+  /* A table that runs past the column scrolls in place, and the edge it
+     scrolls under is marked with a hairline. No shadow, no gradient. */
+  .doc-tablewrap {
+    border-right: 1px solid color-mix(in srgb, currentColor 26%, transparent);
+    padding-right: var(--s2);
+  }
+
+  /* Two lines, per the layout section: the name, then the state and the
+     stage sharing the second. Three lines was a third of the viewport for
+     one row. */
+  .reg {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: var(--s1);
+    column-gap: var(--s3);
+  }
+
+  .reg-name {
+    grid-column: 1 / -1;
+  }
+
+  .reg-state {
+    grid-column: 1;
+  }
+
+  .reg-stage {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .finding {
+    grid-template-columns: 24px minmax(0, 1fr);
+    row-gap: var(--s1);
+  }
+
+  .finding input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+
+  .finding-sev {
+    grid-column: 2;
+  }
+
+  .finding-text {
+    grid-column: 2;
+  }
+
+  .control {
+    min-height: 48px;
+    padding: var(--s3);
+  }
+
+  /* the response bar pins to the bottom of the viewport */
+  .ask-foot {
+    position: sticky;
+    bottom: 0;
+    background: var(--hold-field);
+    z-index: 2;
+  }
+
+  .hist-row {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .hist-detail {
+    grid-column: 2;
+  }
+}
+
+/* -------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .spine[data-state="running"]::after {
+    animation: none;
+    height: 50%;
+    transform: none;
+  }
+
+  .spine.is-releasing::before {
+    animation: none;
+    bottom: 0;
+  }
+
+  .spine.is-releasing::after {
+    transition: none;
+  }
+
+  .ask.is-draining {
+    animation: none;
+  }
+
+  .ask.is-promoting {
+    animation: none;
+  }
+
+  .control {
+    transition: background 1ms linear;
+  }
+
+  .control:active {
+    transform: none;
+    background: color-mix(in srgb, currentColor 22%, transparent);
+  }
+}

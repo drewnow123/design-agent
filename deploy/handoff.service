@@ -1,0 +1,40 @@
+# Handoff console, run as a service on a LAN box.
+#
+# The console reads and writes the repository working tree, so it must run on
+# the machine the repository lives on and as a user who can write .handoff/.
+# It is not a client that can point at a backend elsewhere.
+#
+#   sudo cp deploy/handoff.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now handoff
+#
+# There is no authentication and no TLS. Keep this on a trusted network
+# segment, or put an authenticating proxy in front of it.
+
+[Unit]
+Description=Handoff design pipeline console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=handoff
+Group=handoff
+WorkingDirectory=/srv/my-design-agent
+ExecStart=/usr/bin/python3 scripts/console.py --port 8790 --allow-host handoff.lan
+Restart=on-failure
+RestartSec=3
+
+# The process needs exactly one writable path. Everything else is read only.
+ProtectSystem=strict
+ReadWritePaths=/srv/my-design-agent/.handoff
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target

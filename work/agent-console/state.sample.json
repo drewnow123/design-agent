@@ -1,0 +1,335 @@
+{
+  "version": 1,
+  "generated": "2026-08-24T21:58:00Z",
+  "note": "Sample data. Used only when the API is not reachable. Not a record of anything.",
+  "projects": [
+    {
+      "slug": "vireo-landing",
+      "state": "held",
+      "stage": "design-strategist",
+      "since": "2026-08-24T21:14:00Z",
+      "stageCount": 1,
+      "ask": {
+        "id": "vireo-landing/direction/1",
+        "revision": 3,
+        "kind": "direction",
+        "headline": "Approve the direction for vireo-landing",
+        "from": "design-strategist",
+        "at": "2026-08-24T21:14:00Z",
+        "meta": "1,040 words",
+        "document": "# Visual direction: Vireo, a field recorder for birdsong\n\nStatus: proposed, awaiting approval. No code until approved.\n\nDials: DESIGN_VARIANCE 5 (a field notebook, not a composition) · MOTION_INTENSITY 3 · VISUAL_DENSITY 4.\n\n## 1. Concept\n\n**A recording is not a waveform. It is a place, a time, and a bird you may or may not have identified correctly.**\n\nEvery birding app I looked at opens with a spectrogram and a confidence percentage. Both are wrong for this audience. The spectrogram is a picture of a signal, and the person holding the phone is standing in a wet field at 05:40 trying to decide whether the thing in the hedge is a *garden warbler* or a *blackcap*. The percentage is worse: it invites the user to accept a machine's guess without listening, which is the exact habit that ruins a field record.\n\nSo the organizing idea is the **field notebook**. A record has an entry, the entry has a date and a place written by hand, and an identification is something you *commit to*, with the machine's suggestion sitting beside your own as a second opinion rather than a verdict.\n\nSignature element: the **uncertain entry**, an identification the user has explicitly left open, which stays visibly open in the record until it is closed.\n\n## 2. Typography\n\nTwo families, and the split is semantic.\n\n| Voice | Family | License | What it sets |\n|---|---|---|---|\n| Notebook | Vollkorn | OFL | Species names, notes, the entry body |\n| Instrument | IBM Plex Sans | OFL | Timestamps, coordinates, durations, controls |\n\nVollkorn is a working text serif with enough weight to survive a phone screen in daylight, and it carries the notebook idea without any handwriting pastiche. Plex Sans handles everything the machine measured, which keeps the boundary between *what you wrote* and *what the phone recorded* legible before a word is read.\n\nSpecies names are set in italic where the Latin binomial is used, roman where the common name is used. That is the convention of the field, and following it is free.\n\n### Scale\n\n| Role | Size / leading | Weight |\n|---|---|---|\n| Entry title | 24 / 30px | 600 |\n| Species, common name | 19 / 26px | 500 |\n| Species, binomial | 17 / 24px | 400 italic |\n| Note body | 16.5 / 1.6 | 400 |\n| Measured value | 13 / 18px | 500 |\n\n## 3. Color\n\n**One hue, and it means an entry is still open.**\n\nEverything else is achromatic. A closed entry recedes, an open one does not. Green would be the obvious choice for a bird app and it is exactly why this does not use it: a green interface full of green birds is unreadable, and it makes the app look like every other nature product.\n\n| Token | Value | Use |\n|---|---|---|\n| `paper` | `#F2F0EA` | Page, warm and slightly toothy |\n| `paper-sunk` | `#E4E1D8` | Wells, the audio scrubber track |\n| `ink` | `#1B1A17` | Entry body, species names |\n| `ink-2` | `#57544C` | Measured values, coordinates |\n| `rule` | `#D6D2C7` | Hairlines, entry separators |\n| `open` | `#C2410C` | The open entry, and nothing else |\n\nThe one hue is a burnt orange rather than a signal red, because an open entry is not an error. It is a piece of honest work in progress, and the palette should not scold the user for it.\n\n### What color is not allowed to do\n\n- It never encodes a species, a family, or a habitat.\n- It never encodes confidence. Confidence is a sentence, not a bar.\n- Links are `ink` with a hairline underline.\n\n## 4. Layout\n\nThe entry list is a **ledger**, not a card grid. One entry per row, with the date column fixed and the content column flowing.\n\n```\n  05:40   Blackcap?                        0:47\n          Sylvia atricapilla                 ^ open\n          Hedge behind the north gate. Two\n          birds answering each other.\n\n  05:12   Wren                             0:12\n          Troglodytes troglodytes\n```\n\nRules:\n\n1. The date column never moves. It is the spine of the record.\n2. Duration sits hard right, tabular, because durations get compared.\n3. A note wraps under the species, indented to the species, never to the date.\n4. The measure for a note is capped at 62 characters. Field notes are short and letting them run to 110 characters makes them look like prose they are not.\n\n## 5. Motion\n\nThree behaviors, all motivated.\n\n1. **The scrubber.** Playback position moves because playback is genuinely happening.\n2. **Committing an identification.** The open marker retracts over 300ms. Once.\n3. **Press feedback.** A 1px translate. Nothing else.\n\n> An app that animates on load is telling the user it has nothing to say. Vireo opens with the record already there, because the record is the point.\n\nUnder `prefers-reduced-motion: reduce` the scrubber becomes a stepped position readout and the retraction is instant.\n\n## 6. Anti-patterns\n\n- **A confidence percentage.** A number that says 87% invites acceptance without listening. The machine's suggestion is phrased as a sentence and is always second.\n- **A spectrogram as decoration.** It appears only on the detail view, where a user can actually read it.\n- **Photographs of birds the user did not take.** Stock imagery of a species in an entry the user recorded by ear is a lie about what happened.\n- **A map as the home screen.** The record is the home screen. The map is a view of it.\n- **Gamification.** No streaks, no life-list badges, no confetti on a new species.\n"
+      },
+      "history": [
+        {
+          "at": "2026-08-24T20:52:00Z",
+          "kind": "stage",
+          "text": "design-strategist started"
+        },
+        {
+          "at": "2026-08-24T21:14:00Z",
+          "kind": "stage",
+          "text": "design-strategist finished",
+          "detail": "1,040 words"
+        }
+      ]
+    },
+    {
+      "slug": "hall-archive",
+      "state": "held",
+      "stage": "design-reviewer",
+      "since": "2026-08-24T20:38:00Z",
+      "stageCount": 3,
+      "ask": {
+        "id": "hall-archive/findings/4",
+        "revision": 1,
+        "kind": "findings",
+        "headline": "Triage 7 findings on hall-archive",
+        "from": "design-reviewer",
+        "at": "2026-08-24T20:38:00Z",
+        "meta": "3 must-fix · 3 worth fixing · 1 nitpick",
+        "to": "the builder",
+        "findings": [
+          {
+            "id": "f1",
+            "severity": "must-fix",
+            "text": "The entry list header collapses onto the first row at 1280 and above, so the date column loses its label exactly where there is the most room for it.",
+            "where": "work/hall-archive/styles.css:212"
+          },
+          {
+            "id": "f2",
+            "severity": "must-fix",
+            "text": "Focus ring is invisible on the open-entry marker. It inherits the same burnt orange it sits on.",
+            "where": "work/hall-archive/styles.css:388"
+          },
+          {
+            "id": "f3",
+            "severity": "must-fix",
+            "text": "The generation counter in the header is computed from the wrong field and reads one generation short for every branch that has an adopted member.",
+            "where": "work/hall-archive/script.js:104"
+          },
+          {
+            "id": "f4",
+            "severity": "worth fixing",
+            "text": "Section spacing drifts off the scale in three places, which reads as arbitrary at speed rather than as a decision.",
+            "where": "work/hall-archive/styles.css:301"
+          },
+          {
+            "id": "f5",
+            "severity": "worth fixing",
+            "text": "Two of the portrait images ship at 2400px wide and are displayed at 320. On a phone that is most of the page weight.",
+            "where": "work/hall-archive/media/"
+          },
+          {
+            "id": "f6",
+            "severity": "worth fixing",
+            "text": "The empty branch state says \"No records found\" where it could say what to do about it.",
+            "where": "work/hall-archive/index.html:263"
+          },
+          {
+            "id": "f7",
+            "severity": "nitpick",
+            "text": "Two hairline weights in the footer, 1px and 1.5px, for no reason I can find.",
+            "where": "work/hall-archive/styles.css:640"
+          }
+        ]
+      },
+      "history": [
+        {
+          "at": "2026-08-24T18:02:00Z",
+          "kind": "stage",
+          "text": "component-builder finished",
+          "detail": "9 files"
+        },
+        {
+          "at": "2026-08-24T18:20:00Z",
+          "kind": "decision",
+          "text": "you sent it back",
+          "quote": "The branch diagram reads as decoration. Either it carries the generation count or it goes."
+        },
+        {
+          "at": "2026-08-24T19:44:00Z",
+          "kind": "stage",
+          "text": "component-builder finished",
+          "detail": "4 files"
+        },
+        {
+          "at": "2026-08-24T20:38:00Z",
+          "kind": "stage",
+          "text": "design-reviewer finished",
+          "detail": "7 findings"
+        }
+      ]
+    },
+    {
+      "slug": "brew-balance",
+      "state": "held",
+      "stage": "component-builder",
+      "since": "2026-08-24T19:07:00Z",
+      "stageCount": 2,
+      "ask": {
+        "id": "brew-balance/build/2",
+        "revision": 1,
+        "kind": "build",
+        "headline": "Review the build for brew-balance",
+        "from": "component-builder",
+        "at": "2026-08-24T19:07:00Z",
+        "meta": "11 files · 1 revision",
+        "previewUrl": "http://localhost:8788/brew-balance/",
+        "changed": [
+          "The ratio dial is now a real `input[type=range]` with a printed value, not a drag surface with no keyboard path.",
+          "Grind and dose share one scale, so the two numbers can be compared without converting anything.",
+          "The recipe card prints. It was previously clipped at the second column.",
+          "Every control has a visible focus ring in both themes."
+        ]
+      },
+      "history": [
+        {
+          "at": "2026-08-24T17:31:00Z",
+          "kind": "decision",
+          "text": "you approved the direction"
+        },
+        {
+          "at": "2026-08-24T17:32:00Z",
+          "kind": "stage",
+          "text": "component-builder started"
+        },
+        {
+          "at": "2026-08-24T19:07:00Z",
+          "kind": "stage",
+          "text": "component-builder finished",
+          "detail": "11 files"
+        }
+      ]
+    },
+    {
+      "slug": "meridian-books",
+      "state": "held",
+      "stage": "design-strategist",
+      "since": "2026-08-24T16:22:00Z",
+      "stageCount": 1,
+      "ask": {
+        "id": "meridian-books/question/1",
+        "revision": 2,
+        "kind": "question",
+        "headline": "One question before the direction is written",
+        "from": "design-strategist",
+        "at": "2026-08-24T16:22:00Z",
+        "meta": "blocking the direction",
+        "question": "The catalogue has 4,100 titles and only 320 have cover images. Which way should the grid go?",
+        "note": "Whichever you pick, I will build the whole direction around it, so this is worth thirty seconds.",
+        "options": [
+          {
+            "id": "typographic",
+            "label": "Set every title typographically and use no covers at all"
+          },
+          {
+            "id": "mixed",
+            "label": "Show covers where they exist, type where they do not"
+          },
+          {
+            "id": "covers-first",
+            "label": "Lead with the 320 that have covers, list the rest"
+          }
+        ]
+      },
+      "history": [
+        {
+          "at": "2026-08-24T16:04:00Z",
+          "kind": "stage",
+          "text": "design-strategist started"
+        },
+        {
+          "at": "2026-08-24T16:22:00Z",
+          "kind": "stage",
+          "text": "design-strategist stopped to ask",
+          "detail": "1 question"
+        }
+      ]
+    },
+    {
+      "slug": "orchard-notes",
+      "state": "stopped",
+      "stage": "component-builder",
+      "since": "2026-08-24T03:12:00Z",
+      "stageCount": 2,
+      "ask": {
+        "id": "orchard-notes/stopped/1",
+        "revision": 1,
+        "kind": "question",
+        "headline": "stopped at component-builder, 03:12. Nothing was written.",
+        "from": "component-builder",
+        "at": "2026-08-24T03:12:00Z",
+        "meta": "no files changed",
+        "question": "The stage ran out of context while rendering the seasonal chart and stopped before writing any file.",
+        "options": [
+          {
+            "id": "retry",
+            "label": "Retry the stage"
+          },
+          {
+            "id": "close",
+            "label": "Close the project"
+          }
+        ]
+      },
+      "history": [
+        {
+          "at": "2026-08-24T02:40:00Z",
+          "kind": "decision",
+          "text": "you approved the direction"
+        },
+        {
+          "at": "2026-08-24T02:41:00Z",
+          "kind": "stage",
+          "text": "component-builder started"
+        },
+        {
+          "at": "2026-08-24T03:12:00Z",
+          "kind": "stage",
+          "text": "component-builder stopped",
+          "detail": "0 files"
+        }
+      ]
+    },
+    {
+      "slug": "career-site",
+      "state": "running",
+      "stage": "design-reviewer",
+      "since": "2026-08-24T21:52:00Z",
+      "stageCount": 3,
+      "ask": null,
+      "history": [
+        {
+          "at": "2026-08-24T21:44:00Z",
+          "kind": "stage",
+          "text": "component-builder finished",
+          "detail": "6 files"
+        },
+        {
+          "at": "2026-08-24T21:52:00Z",
+          "kind": "stage",
+          "text": "design-reviewer started"
+        }
+      ]
+    },
+    {
+      "slug": "atlas-invoices",
+      "state": "ready",
+      "stage": "component-builder",
+      "since": "2026-08-24T21:03:00Z",
+      "stageCount": 1,
+      "ask": null,
+      "history": [
+        {
+          "at": "2026-08-24T20:58:00Z",
+          "kind": "stage",
+          "text": "design-strategist finished",
+          "detail": "2,110 words"
+        },
+        {
+          "at": "2026-08-24T21:03:00Z",
+          "kind": "decision",
+          "text": "you approved the direction"
+        }
+      ]
+    },
+    {
+      "slug": "archive-2024",
+      "state": "clear",
+      "stage": "design-reviewer",
+      "since": "2026-08-19T22:30:00Z",
+      "stageCount": 3,
+      "ask": null,
+      "history": [
+        {
+          "at": "2026-08-19T19:10:00Z",
+          "kind": "stage",
+          "text": "design-strategist finished",
+          "detail": "2,640 words"
+        },
+        {
+          "at": "2026-08-19T19:26:00Z",
+          "kind": "decision",
+          "text": "you approved the direction"
+        },
+        {
+          "at": "2026-08-19T21:02:00Z",
+          "kind": "stage",
+          "text": "component-builder finished",
+          "detail": "14 files"
+        },
+        {
+          "at": "2026-08-19T22:11:00Z",
+          "kind": "stage",
+          "text": "design-reviewer finished",
+          "detail": "4 findings"
+        },
+        {
+          "at": "2026-08-19T22:30:00Z",
+          "kind": "decision",
+          "text": "you signed off. the line is clear."
+        }
+      ]
+    }
+  ]
+}

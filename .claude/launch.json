@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8788", "--directory", "work"],
+      "port": 8788
+    },
+    {
+      "name": "console",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["scripts/console.py"],
+      "port": 8790
+    }
+  ]
+}
