@@ -1,45 +1,117 @@
-/* Handoff. Console for a pipeline whose normal condition is stopped.
-   Spacing is six steps: 4 / 8 / 14 / 22 / 36 / 56. Two radii: 0 and 5px.
-   No shadow declarations anywhere. The focus ring is an outline. */
+/* Front End Agents.
+ *
+ * One rule runs through this whole file:
+ *
+ *   The furniture is soft, dimensional and reactive. The drawing is hard,
+ *   flat and still. Every element is one or the other, and nothing is both.
+ *
+ * Furniture is the shell, the ask field, cards, controls, inputs, the
+ * reading surface and the response bar. It gets radius, elevation, hover
+ * and springs. The drawing is everything inside a row: the track, the
+ * thread, the five termini, the return arc and the travelling segment. It
+ * gets zero radius, zero shadow, zero hover and zero spring.
+ *
+ * Spacing is seven steps: 2 / 4 / 8 / 14 / 22 / 36 / 56. The 2px step
+ * exists only for the inside of small inline chips, and naming it is what
+ * stopped 1px, 2px, 3px and 6px appearing ad hoc across the file.
+ * The focus ring is an outline, never a shadow.
+ */
 
 /* ---------------------------------------------------------------- fonts */
 
+/* Three voices. The system speaks in one, documents speak in another, and
+   machine literals speak in a third. If you cannot say which voice a string
+   belongs to, the wrong face is being used. */
+
 @font-face {
-  font-family: "Schibsted Grotesk";
-  src: url("fonts/schibsted-grotesk-var-latin.woff2") format("woff2");
-  font-weight: 400 900;
+  font-family: "Instrument Sans";
+  src: url("fonts/instrument-sans-var-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Literata";
-  src: url("fonts/literata-var-latin.woff2") format("woff2");
-  font-weight: 200 900;
+  font-family: "Newsreader";
+  src: url("fonts/newsreader-var-latin.woff2") format("woff2");
+  /* The shipped file is instanced to the range this build asks for, so the
+     descriptor states that range rather than the original 200 to 800. A
+     descriptor wider than the file would let a rule request a weight the
+     font cannot draw, and font-synthesis-weight is off. */
+  font-weight: 380 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Literata";
-  src: url("fonts/literata-italic-var-latin.woff2") format("woff2");
-  font-weight: 200 900;
+  font-family: "Newsreader";
+  src: url("fonts/newsreader-italic-var-latin.woff2") format("woff2");
+  font-weight: 380 620;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Spline Sans Mono";
-  src: url("fonts/spline-sans-mono-var-latin.woff2") format("woff2");
-  font-weight: 300 700;
+  font-family: "Geist Mono";
+  src: url("fonts/geist-mono-var-latin.woff2") format("woff2");
+  font-weight: 400 500;
   font-style: normal;
   font-display: swap;
+}
+
+/* Metric matched fallbacks. Every number below was read out of the head,
+   hhea and OS/2 tables of the real font files rather than estimated, so the
+   swap does not move a single row. On a board of rows a font swap without
+   overrides is a visible jolt, and layout shift on a tool you stare at is
+   worse than layout shift on a page you scroll past.
+
+   size-adjust is the ratio of the two x heights. The ascent and descent
+   overrides are the target face metrics divided by that ratio, so the
+   fallback occupies exactly the line box the real face will occupy. */
+
+@font-face {
+  font-family: "Instrument Fallback";
+  src: local("Segoe UI"), local("Helvetica Neue"), local("Arial");
+  size-adjust: 102.0%;      /* Instrument Sans x 51.00 over Segoe UI x 50.00 */
+  ascent-override: 95.10%;  /* 97.00 over 1.020 */
+  descent-override: 24.51%; /* 25.00 over 1.020 */
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Newsreader Fallback";
+  src: local("Georgia"), local("Times New Roman");
+  size-adjust: 88.49%;      /* Newsreader x 42.60 over Georgia x 48.14 */
+  ascent-override: 83.06%;  /* 73.50 over 0.8849 */
+  descent-override: 29.95%; /* 26.50 over 0.8849 */
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Newsreader Fallback";
+  src: local("Georgia Italic"), local("Times New Roman Italic");
+  font-style: italic;
+  size-adjust: 88.49%;
+  ascent-override: 83.06%;
+  descent-override: 29.95%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Consolas"), local("SF Mono"), local("Menlo");
+  size-adjust: 108.12%;     /* Geist Mono x 53.00 over Consolas x 49.02 */
+  ascent-override: 92.95%;  /* 100.50 over 1.0812 */
+  descent-override: 27.28%; /* 29.50 over 1.0812 */
+  line-gap-override: 0%;
 }
 
 /* --------------------------------------------------------------- tokens */
 
 :root {
-  /* six spacing steps, and nothing else */
+  /* seven spacing steps, and nothing else */
+  --s0: 2px;
   --s1: 4px;
   --s2: 8px;
   --s3: 14px;
@@ -47,54 +119,202 @@
   --s5: 36px;
   --s6: 56px;
 
-  --radius: 5px;
-  --gutter: 48px;
-  --column: 1080px;
-  --measure: 66ch;
-  --measure-wide: 880px;
+  /* Radius. Rounded is the point, so there is a real scale.
+     --r-full is declared here so that nobody invents an alternative, and it
+     is applied to nothing. Nothing in this tool is a pill: a pill would
+     bring back the badge and chip vocabulary the structure bans, and once
+     one exists somebody makes a second one that carries status. */
+  --r-0: 0;
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 12px;
+  --r-4: 20px;
+  --r-full: 9999px;
 
-  --font-console: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-doc: "Literata", Georgia, "Times New Roman", serif;
-  --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --column: 1240px;
+  --measure: 66ch;        /* document prose */
+  --measure-tight: 60ch;  /* a question, and the console's own sentences */
+  --measure-head: 30ch;   /* the ask headline, which is display size */
+  --measure-wide: 880px;  /* tables and code, which break right */
+
+  --col-name: 200px;
+  --col-time: 120px;
+  --row-h: 44px;
+
+  --font-system: "Instrument Sans", "Instrument Fallback", system-ui, sans-serif;
+  --font-doc: "Newsreader", "Newsreader Fallback", Georgia, serif;
+  --font-mono: "Geist Mono", "Geist Fallback", ui-monospace, monospace;
+
+  /* Three weight steps per family. Dark mode steps every one of them down by
+     20 units, because light text on a dark ground reads optically heavier:
+     bright pixels bleed into their dark neighbours in the eye. Both faces
+     are variable, so this is a true continuous grade rather than a jump to
+     the next named weight. */
+  --w-reg: 430;
+  --w-med: 520;
+  --w-strong: 600;
+  --w-doc: 390;
 
   /* dark, designed first */
-  --surface: #0E1210;
-  --surface-raised: #151A18;
-  --surface-sunk: #0A0D0C;
-  --ink: #E8EDEA;
-  --ink-2: #A3ADA8;
-  --ink-3: #7B8681;
-  --rule: #232A27;
-  --rule-live: #38423E;
-  --hold-field: #211E0C;
-  --hold-ink: #F5D547;
-  --hold-ink-dim: #A8901F;
-  --hold-mark: #F5D547;
-  --focus: #F5D547;
-  --focus-on-field: #F5D547;
+  --bg: #0B0F0E;
+  --surface-1: #121716;
+  --surface-2: #171D1C;
+  --surface-3: #1E2524;
+  --well: #080B0A;
+  --ink: #E6EDEB;
+  --ink-2: #A2ADAA;
+  --ink-3: #7C8783;
+  --rule: #222A28;
+  --rule-strong: #333E3B;
+  --track: #333E3B;
+  --track-hi: #414E4A;      /* the half device pixel track, one notch up */
+  --thread: #8A9691;
+  --attn: #F5D547;
+  --attn-field: #221F0C;
+  --attn-line: #5A4B12;
+  --attn-on-field: #F5D547;
+  --live: #45DDD0;
+  /* Dark takes the live hue itself rather than a second value, so that the
+     wide gamut upgrade below reaches it. Hardcoding this meant that on a P3
+     panel the running word and the running bar were two different aquas. */
+  --live-ink: var(--live);
+  --live-fade: rgb(69 221 208 / 0);
+
+  /* Four elevation levels, and every one of them is three or four layers
+     with a job each. A ring draws the containing line without the box model
+     cost of a border. A tight contact shadow makes the object look like it
+     is resting on something. A wide ambient shadow makes it look like it is
+     in a room. On dark, a top inset highlight is what actually separates
+     the surface from the page, because a black shadow on a near black
+     ground is invisible. Never one layer, never more than four. */
+  --elev-1:
+    inset 0 1px 0 0 rgb(255 255 255 / .055),
+    0 0 0 1px rgb(255 255 255 / .055),
+    0 1px 2px -1px rgb(0 0 0 / .55),
+    0 6px 16px -6px rgb(0 0 0 / .45);
+  --elev-2:
+    inset 0 1px 0 0 rgb(255 255 255 / .075),
+    0 0 0 1px rgb(255 255 255 / .07),
+    0 2px 4px -2px rgb(0 0 0 / .60),
+    0 14px 32px -12px rgb(0 0 0 / .55);
+  --elev-3:
+    inset 0 1px 0 0 rgb(255 255 255 / .09),
+    0 0 0 1px rgb(255 255 255 / .08),
+    0 4px 8px -4px rgb(0 0 0 / .65),
+    0 24px 56px -20px rgb(0 0 0 / .60);
+  --well-inset:
+    inset 0 1px 2px 0 rgb(0 0 0 / .50),
+    inset 0 0 0 1px rgb(255 255 255 / .04);
+
+  /* The ring on its own, at the three strengths a control moves through.
+     Same technique as the ring layer inside the elevation stack: it draws
+     the containing line without the box model cost of a border, so it never
+     double draws at a nesting boundary and never fights box-sizing. */
+  --ring-rest: 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+  --ring-hover: 0 0 0 1px color-mix(in srgb, currentColor 70%, transparent);
+  --ring-press: 0 0 0 1px currentColor;
+  --ring-quiet: 0 0 0 0 transparent;
+  --ring-attn: 0 0 0 1px var(--attn-line);
+
+  /* Motion. The house spring has a damping ratio of 0.75, which puts its
+     first peak at 2.8 percent. The cubic-bezier spring token found all over
+     the web overshoots about ten percent, and that is the toy bounce this
+     build is not allowed to have. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-enter: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.26, 0.64, 1);   /* 2.2 percent, the fallback */
+
+  --t-press: 90ms;
+  --t-quick: 140ms;
+  --t-release: 240ms;
+  --t-move: 420ms;
+  --t-thread: 520ms;
 
   color-scheme: dark;
 }
 
+@supports (animation-timing-function: linear(0, 1)) {
+  :root {
+    /* damping ratio 0.75, sampled at 21 points from the underdamped step
+       response, peak 1.0284 */
+    --ease-spring: linear(
+      0, 0.0753 5%, 0.2404 10%, 0.4298 15%, 0.6061 20%, 0.7518 25%,
+      0.8616 30%, 0.9375 35%, 0.9861 40%, 1.0127 45%, 1.0254 50%,
+      1.0284 55%, 1.0261 60%, 1.0213 65%, 1.0160 70%, 1.0110 75%,
+      1.0069 80%, 1.0038 85%, 1.0017 90%, 1.0004 95%, 1
+    );
+  }
+}
+
 :root[data-theme="light"] {
-  --surface: #EFF3F1;
-  --surface-raised: #FAFCFB;
-  --surface-sunk: #E4EAE7;
-  --ink: #131715;
-  --ink-2: #4E5854;
-  --ink-3: #79837F;
-  --rule: #D8E0DC;
-  --rule-live: #B4BFBA;
-  --hold-field: #FFE873;
-  --hold-ink: #1A1400;
-  --hold-ink-dim: #8A6D00;
-  --hold-mark: #8A6D00;
-  --focus: #8A6D00;
-  /* the yellow ring is invisible on the light yellow field, so the field
-     gets its own ring token. */
-  --focus-on-field: #1A1400;
+  /* Light inverts the stacking, which is the correct convention: the page is
+     slightly grey and cards are near white and lift off it. */
+  --bg: #EDF1EF;
+  --surface-1: #F6F9F8;
+  --surface-2: #FCFEFD;
+  --surface-3: #F1F5F3;
+  --well: #E3E9E6;
+  --ink: #101614;
+  --ink-2: #424D4A;
+  --ink-3: #5F6C68;
+  --rule: #DBE3DF;
+  --rule-strong: #C3CCC8;
+  --track: #C3CCC8;
+  --track-hi: #B2BDB8;
+  --thread: #4C5955;
+  --attn: #7A6000;
+  --attn-field: #FFE873;
+  --attn-line: #B08F00;
+  --attn-on-field: #1A1400;
+  --live: #0E7C74;
+  --live-ink: #0B6A63;
+  --live-fade: rgb(14 124 116 / 0);
+
+  --w-reg: 450;
+  --w-med: 540;
+  --w-strong: 620;
+  --w-doc: 400;
+
+  /* Tinted toward the ink, never pure black. A neutral black shadow on a
+     green tinted paper reads as a dirty grey smudge. */
+  --elev-1:
+    0 0 0 1px rgb(16 22 20 / .055),
+    0 1px 2px -1px rgb(16 22 20 / .10),
+    0 6px 16px -8px rgb(16 22 20 / .10);
+  --elev-2:
+    0 0 0 1px rgb(16 22 20 / .07),
+    0 2px 4px -2px rgb(16 22 20 / .12),
+    0 14px 32px -14px rgb(16 22 20 / .14);
+  --elev-3:
+    0 0 0 1px rgb(16 22 20 / .08),
+    0 4px 8px -4px rgb(16 22 20 / .14),
+    0 24px 56px -22px rgb(16 22 20 / .16);
+  --well-inset:
+    inset 0 1px 2px 0 rgb(16 22 20 / .07),
+    inset 0 0 0 1px rgb(16 22 20 / .07);
 
   color-scheme: light;
+}
+
+/* Two chromatic tokens get a wide gamut upgrade and nothing else does. The
+   sRGB value is declared first on the same property, so a panel that cannot
+   parse the second keeps the first. Every value below sits within two
+   percent of the relative luminance of its fallback, so no published
+   contrast ratio changes when this branch is taken. Neutrals stay sRGB: a
+   wide gamut neutral is the same colour and only adds rounding. */
+@media (color-gamut: p3) {
+  :root {
+    --attn: #F5D547;
+    --attn: color(display-p3 0.949 0.831 0.235);
+    --live: #45DDD0;
+    --live: color(display-p3 0.286 0.866 0.812);
+  }
+
+  :root[data-theme="light"] {
+    --live-ink: #0B6A63;
+    --live-ink: color(display-p3 0.043 0.416 0.388);
+  }
 }
 
 /* ---------------------------------------------------------------- reset */
@@ -106,38 +326,29 @@
 }
 
 html {
-  background: var(--surface);
+  background: var(--bg);
 }
 
 body {
   margin: 0;
-  background: var(--surface);
+  background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-console);
+  font-family: var(--font-system);
+  /* The root fallback only. Every element carrying visible text sets its own
+     size from the scale, so nothing on screen is left to inherit this. */
   font-size: 15px;
-  font-weight: 400;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 100;
   font-synthesis-weight: none;
   font-optical-sizing: auto;
   -webkit-text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2,
-h3,
-p,
-ul,
-ol,
-figure,
-blockquote,
-fieldset,
-legend {
+h1, h2, h3, p, ul, ol, figure, blockquote, fieldset, legend {
   margin: 0;
   padding: 0;
 }
 
-ul,
-ol {
+ul, ol {
   list-style: none;
 }
 
@@ -150,25 +361,42 @@ button {
   padding: 0;
 }
 
-/* The ring is an outline, never a shadow. Browsers already round an outline
-   to the element's own border-radius, so there is no third radius here. */
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+svg {
+  display: block;
+  shape-rendering: geometricPrecision;
 }
 
-.holdfield :focus-visible {
-  outline-color: var(--focus-on-field);
+/* The ring is an outline. Aqua clears three to one against every surface in
+   both themes including the yellow field, which is why there is one focus
+   token here rather than the two the old build needed. */
+a,
+button,
+input,
+textarea,
+[tabindex] {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color var(--t-quick) var(--ease-standard);
+}
+
+:focus-visible {
+  outline-color: var(--live);
 }
 
 .skip {
   position: absolute;
   left: -9999px;
   top: 0;
+  z-index: 6;
   padding: var(--s2) var(--s3);
-  background: var(--surface-raised);
+  background: var(--surface-2);
   color: var(--ink);
-  z-index: 4;
+  border-radius: var(--r-2);
+  box-shadow: var(--elev-2);
+  font-size: 14px;
+  line-height: 16px;
+  text-decoration: none;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
 }
 
 .skip:focus {
@@ -179,17 +407,50 @@ button {
 /* --------------------------------------------------------------- topbar */
 
 .topbar {
-  border-bottom: 1px solid var(--rule);
-  background: var(--surface);
   position: sticky;
   top: 0;
-  z-index: 3;
+  z-index: 4;
+  background: var(--bg);
+}
+
+/* The one blurred element in the tool, and it is here because content really
+   does scroll underneath it. Everything else is solid: a blur on a scrolling
+   container is a continuous repaint, and it is the exact trap that makes an
+   apple-esque web build feel worse than a flat one.
+
+   The base rule above is opaque, which is the fallback for a browser without
+   the blur. The media query is the fallback for somebody who has asked
+   for less transparency. */
+@supports (backdrop-filter: blur(20px)) {
+  @media not (prefers-reduced-transparency: reduce) {
+    .topbar {
+      background: color-mix(in srgb, var(--bg) 72%, transparent);
+      backdrop-filter: blur(20px) saturate(1.6);
+    }
+  }
+}
+
+/* absent until content scrolls under the bar, then 140ms */
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--rule);
+  opacity: 0;
+  transition: opacity var(--t-quick) var(--ease-standard);
+}
+
+.topbar.is-lifted::after {
+  opacity: 1;
 }
 
 .topbar-inner {
   max-width: var(--column);
   margin: 0 auto;
-  height: 52px;
+  height: 56px;
   padding: 0 var(--s4);
   display: flex;
   align-items: center;
@@ -199,8 +460,9 @@ button {
 
 .wordmark {
   font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  line-height: 22px;
+  letter-spacing: -0.010em;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
 }
 
 .wordmark-link {
@@ -208,17 +470,20 @@ button {
   text-decoration: none;
 }
 
-.heldcount {
+.needcount {
   font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
+  line-height: 18px;
+  letter-spacing: 0.004em;
   font-variant-numeric: tabular-nums;
-  color: var(--ink-2);
+  font-variation-settings: "wght" var(--w-med), "wdth" 96;
+  color: var(--attn);
 }
 
-.heldcount.is-held {
-  color: var(--hold-mark);
-  font-weight: 600;
+.scroll-sentinel {
+  position: absolute;
+  top: 56px;
+  height: 1px;
+  width: 1px;
 }
 
 /* ---------------------------------------------------------------- shell */
@@ -229,210 +494,555 @@ button {
   padding: 0 var(--s4) var(--s6);
 }
 
-/* Every band is the same two-track grid: the gutter carries the spine, the
-   content sits beside it. Bands never take vertical margin, only padding,
-   so the rule stays continuous where it should be continuous. */
-.band {
+/* ============================================================ THE DRAWING
+ *
+ * Everything from here to the end of the flow section is the diagram. It is
+ * a technical illustration sitting on a soft page, and the contrast between
+ * the two is the design. Nothing below takes a radius, a shadow, a hover or
+ * a spring.
+ */
+
+.flow {
+  margin-top: var(--s5);
+}
+
+.fhead,
+.frow {
   display: grid;
-  grid-template-columns: var(--gutter) minmax(0, 1fr);
-  align-items: stretch;
+  grid-template-columns:
+    var(--col-name)
+    minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)
+    var(--col-time);
+  align-items: center;
+  column-gap: 0;
+  width: 100%;
+  text-align: left;
 }
 
-/* ---------------------------------------------------- the spine and rule */
+/* Column headers are real HTML, sentence case, never uppercase. The width
+   axis is doing the narrowing here rather than negative letter spacing,
+   which is a real designer drawn narrow rather than a squeeze. */
+.fhead {
+  margin: 0 calc(-1 * var(--s2));
+  padding: 0 var(--s2) var(--s2);
+  border-bottom: 1px solid var(--rule);
+}
 
-.spine {
+.fhead-cell {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.010em;
+  font-variation-settings: "wght" var(--w-med), "wdth" 92;
+  color: var(--ink-3);
+}
+
+.fhead-time {
+  text-align: right;
+}
+
+.fhead-long {
+  display: inline;
+}
+
+.fhead-short {
+  display: none;
+}
+
+.frows {
+  display: block;
+}
+
+.frow {
   position: relative;
+  min-height: var(--row-h);
+  padding: 0 var(--s2);
+  margin: 0 calc(-1 * var(--s2));
+  /* A button shrink wraps its content even as a grid container, so the
+     width is explicit. The eight pixels either side are what the hover fill
+     bleeds into, and .fhead is inset the same way so the two grids share
+     exactly one set of column edges. */
+  width: calc(100% + var(--s2) * 2);
+  cursor: pointer;
+  border-radius: var(--r-2);
+  background-color: transparent;
+  /* Rows tint. Rows do not lift. The board is a register of rows each
+     holding a precise drawing, and lifting one on mouse-over turns a diagram
+     into a bouncy list and drags the thread up with it. Cards lift. */
+  transition: background-color var(--t-quick) var(--ease-standard),
+              outline-color var(--t-quick) var(--ease-standard);
 }
 
-.spine::before {
-  content: "";
+.frow:hover {
+  background-color: var(--surface-1);
+}
+
+.frow:active {
+  background-color: var(--surface-2);
+}
+
+/* There is deliberately no separate cursor ring here. j and k call focus()
+   from a keydown, which matches :focus-visible, so the row already carries
+   the live outline and a second inset ring behind it was unreachable code.
+   The cursor keeps its own signal in the thread thickening below, which is
+   the one that does not depend on colour. */
+
+.frow-name {
+  grid-column: 1;
+  grid-row: 1;
+  padding-right: var(--s3);
+  font-size: 16.5px;
+  line-height: 22px;
+  letter-spacing: -0.006em;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.frow[data-state="clear"] .frow-name {
+  color: var(--ink-3);
+  font-variation-settings: "wght" var(--w-reg), "wdth" 100;
+}
+
+/* The track and the thread live here. One element owns one line, end to
+   end: a continuous line cannot be assembled from segments owned by
+   independent blocks, and trying to was the whole bug class in the last
+   build. */
+.frow-track {
+  position: relative;
+  grid-column: 2 / 5;
+  grid-row: 1;
+  align-self: stretch;
+  min-height: var(--row-h);
+}
+
+.frow-track svg {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--rule-live);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-/* held: the rule stops, and a cross-bar closes it */
-.spine[data-state="held"]::before {
-  bottom: 50%;
+.track-line {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 1;
+  stroke-linecap: butt;
+  vector-effect: non-scaling-stroke;
 }
 
-.spine[data-state="held"]::after {
-  content: "";
+/* The one true sub pixel hairline in the build. On a high density panel the
+   track drops to a single device pixel and steps one notch up in contrast to
+   pay for the halved coverage, which gives a two tier line weight that only
+   exists where it can be seen. The thread is data and stays solid. */
+@media (min-resolution: 2dppx) {
+  .track-line {
+    stroke-width: 0.5;
+    stroke: var(--track-hi);
+  }
+}
+
+.thread-line {
+  fill: none;
+  stroke: var(--thread);
+  stroke-width: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Keyboard focus thickens the thread. No transition: the diagram does not
+   animate on focus. */
+.frow:focus-visible .thread-line,
+.frow.is-cursor .thread-line {
+  stroke-width: 1.5;
+}
+
+.term-line {
+  fill: none;
+  stroke: var(--attn);
+  stroke-width: 1.5;
+  stroke-linecap: butt;
+  vector-effect: non-scaling-stroke;
+}
+
+.term-square {
+  fill: var(--thread);
+  stroke: none;
+}
+
+/* One tick per return, hanging below the point work came back to. Nothing
+   here runs parallel to the thread, which is the whole point: there is no
+   second long side for the eye to close into a rectangle. */
+.repeat-mark {
+  fill: none;
+  stroke: var(--thread);
+  stroke-width: 1;
+  stroke-linecap: butt;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Behaviour 9, the thread extending when a decision lands. It is now the
+   only motion inside the SVG, and it does not overshoot: a thread that
+   sprang past its terminus would draw, for two frames, a line longer than
+   the record of the project, which is a lie about the data. Only the row
+   just acted on ever carries this class.
+
+   Behaviour 10, the return arc drawing, is gone with the arc itself. Sending
+   a build back is still visible in the moment it happens: the thread redraws
+   from the builder column, the repeat mark gains a tick, and the pass count
+   appears in the time column. */
+.frow.is-advancing .thread-line {
+  animation: draw var(--t-thread) var(--ease-settle) both;
+}
+
+@keyframes draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The window is exactly the running stage's column, and it clips. Without
+   it the bar ran a full 48px past the column at each end: on desktop that
+   painted solid aqua straight through the word running, and at 375, where
+   the reserve is zero, it reached past the right edge of the viewport and
+   scrolled the whole page sideways. It also spilled backwards into the
+   previous column, drawing live aqua over a stage that had already
+   finished. The segment travels in the current column and nowhere else.
+
+   The top sits on a whole number, flush with the top edge of the thread's
+   own pixel row, so the 2px bar covers the thread and one row beneath it.
+   Centring it instead would put the box on a half pixel and soften the one
+   moving thing in the drawing. */
+.seg-window {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 12px;
+  left: calc(var(--seg-x) * 1px);
+  top: calc(var(--seg-y) * 1px);
+  width: calc(var(--seg-w) * 1px);
   height: 2px;
-  transform: translate(-50%, -50%);
-  background: var(--hold-mark);
+  overflow: hidden;
 }
 
-/* stopped: the rule ends in a diagonal cut */
-.spine[data-state="stopped"]::before {
-  bottom: 50%;
-}
-
-.spine[data-state="stopped"]::after {
-  content: "";
+/* The entire ramped fill budget for this tool. A solid bar with two hard
+   ends reads as a caterpillar crawling along the thread, and a trailing
+   fade reads as motion. Interpolated in oklab from the live hue at zero
+   alpha rather than from transparent, so there is no grey dip. Forty eight
+   pixels long, two orders of magnitude short of the length at which this
+   palette could band. */
+.seg {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 13px;
-  height: 2px;
-  transform: translate(-50%, -50%) rotate(-45deg);
-  background: var(--hold-mark);
-}
-
-/* clear: the rule runs to the end and terminates in a filled square */
-.spine[data-state="clear"]::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  transform: translate(-50%, -50%);
-  background: var(--ink-3);
-}
-
-/* running: a segment travels down the span. The only loop in the console. */
-.spine[data-state="running"]::after {
-  content: "";
-  position: absolute;
-  left: calc(50% - 1px);   /* centering a 2px segment, not a spacing step */
+  left: 0;
   top: 0;
-  width: 2px;
-  height: 30%;
-  background: var(--ink-2);
-  animation: travel 2s linear infinite;
+  width: 48px;
+  height: 2px;
+  border-radius: var(--r-0);
+  background-image: linear-gradient(
+    to right in oklab,
+    var(--live-fade) 0%,
+    var(--live) 50%,
+    var(--live) 100%
+  );
+  animation: travel 2000ms linear infinite;
 }
 
 @keyframes travel {
   from {
-    transform: translateY(-100%);
+    transform: translateX(-48px);
   }
   to {
-    transform: translateY(333%);
+    transform: translateX(calc(var(--seg-w) * 1px));
   }
 }
 
-/* the rule closing: the payoff when a decision lands */
-.spine.is-releasing::before {
-  animation: close-rule 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* The status word prints immediately after the terminus, so its position is
+   part of the information. It can only ever overrun into columns the project
+   has not used, which is why it cannot collide with anything at any width. */
+.frow-word {
+  grid-column: 2 / 5;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+  margin-left: calc(var(--word-x) * 1px);
+  margin-top: calc((var(--word-y) - 9) * 1px);
+  font-size: 13.5px;
+  line-height: 18px;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
+  color: var(--ink-2);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
-.spine.is-releasing::after {
-  opacity: 0;
-  transition: opacity 160ms linear;
+.frow[data-state="held"] .frow-word,
+.frow[data-state="stopped"] .frow-word {
+  color: var(--attn);
 }
 
-@keyframes close-rule {
-  from {
-    bottom: 50%;
+/* The fourth use of the live hue, beyond the three the colour section
+   enumerates. Stated rather than smuggled. The state words already take
+   their own state's hue where the state has one, which is why held and
+   stopped are set in attn, and running is the single state that means the
+   thing live means: in motion right now. It is reinforcement and never the
+   only signal, because the word itself says running. */
+.frow[data-state="running"] .frow-word {
+  color: var(--live-ink);
+}
+
+.frow[data-state="clear"] .frow-word {
+  color: var(--ink-3);
+  font-variation-settings: "wght" var(--w-reg), "wdth" 100;
+}
+
+.frow-time {
+  grid-column: 5;
+  grid-row: 1;
+  text-align: right;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.004em;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  color: var(--ink-3);
+}
+
+/* Width buys history. At the full column each thread prints the recorded
+   time under each completed segment, inside its own column, and the row
+   grows from a line into a band. Below that they drop and only the one fact
+   in the time column survives. */
+.frow-times {
+  display: none;
+  grid-column: 2 / 5;
+  grid-row: 2;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-bottom: var(--s2);
+}
+
+.frow-times span {
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.004em;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  color: var(--ink-3);
+}
+
+@media (min-width: 1240px) {
+  .frow-times {
+    display: grid;
   }
-  to {
-    bottom: 0;
-  }
 }
 
-/* ------------------------------------------------------ zone 1, your move */
+/* Visually hidden above the phone breakpoint, and deliberately not removed
+   from the box. The column headers and the whole drawing are aria-hidden,
+   so without this the board told a screen reader nothing about which stage
+   any project was at. The colour section justifies the very low contrast of
+   the track on the grounds that the text headers carry the same topology
+   redundantly, and that argument only holds if the text reaches assistive
+   technology. This is the text that carries it. */
+.frow-stage {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-variation-settings: "wght" 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-3);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
-.zone1 {
+/* --------------------------------------------------------- the ask field */
+
+.zone {
   padding-top: var(--s5);
 }
 
-/* No overflow clipping here. It was doing one job, hiding the full-bleed
-   foot's square corners against the field's 5px radius, and it was silently
-   doing a second: making .ask the scroll container for the sticky response
-   bar, so the bar could never pin to the viewport at 375. The foot rounds
-   its own bottom corners instead, and the field stays unclipped. */
+/* The outermost bounded surface in the tool, and the only thing that takes
+   the largest radius. It pads eight pixels around the reading surface, so
+   the reading surface takes twenty minus eight, which lands exactly on the
+   twelve pixel step. That is the only place in this tool where two rounded
+   frames nest. Anything deeper is a sibling sitting on a surface. */
 .ask {
-  background: var(--hold-field);
-  color: var(--hold-ink);
-  border-radius: var(--radius);
-  padding: var(--s4) var(--s5) 0;
+  position: relative;
+  background: var(--attn-field);
+  color: var(--attn-on-field);
+  border-radius: var(--r-4);
+  box-shadow: var(--elev-2);
+  padding: var(--s2);
 }
 
+/* The ring technique, like every other containing line in this file. An
+   outline here was the one place the file reserved for focus doing double
+   duty as a border. */
 .ask.is-stopped {
-  border: 1px solid var(--hold-ink-dim);
+  box-shadow: var(--ring-attn), var(--elev-2);
 }
 
 .ask.is-draining {
-  animation: drain 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: drain var(--t-move) var(--ease-settle) forwards;
 }
 
 @keyframes drain {
   to {
-    background: var(--surface);
+    background-color: var(--bg);
     color: var(--ink);
   }
 }
 
-.ask-headline {
-  font-size: 27px;
-  line-height: 33px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  max-width: 30ch;
+.ask.is-promoting {
+  animation: promote var(--t-move) var(--ease-spring);
 }
 
+@keyframes promote {
+  from {
+    transform: translateY(10px);
+  }
+}
+
+.ask-head {
+  padding: var(--s3) var(--s4) 0;
+}
+
+/* The open ask carries the thread of its own project, above the headline,
+   with no column headers. Twenty two pixels that say how much this one has
+   already cost you before you read a word of it. */
+.ask-mini {
+  position: relative;
+  height: 22px;
+  margin-bottom: var(--s2);
+}
+
+.ask-mini svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ask-mini .track-line {
+  stroke: var(--attn-line);
+}
+
+.ask-mini .thread-line,
+.ask-mini .repeat-mark,
+.ask-mini .term-square {
+  stroke: var(--attn-on-field);
+}
+
+.ask-mini .term-square {
+  fill: var(--attn-on-field);
+  stroke: none;
+}
+
+.ask-mini .term-line {
+  stroke: var(--attn-on-field);
+}
+
+.ask-headline {
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: -0.018em;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
+  max-width: var(--measure-head);
+}
+
+/* Two facts are two cells. Nothing here is a sentence, so nothing here is
+   joined with a separator, and no composed string in this build carries a
+   comma or a middle dot. */
 .ask-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
   margin-top: var(--s2);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.004em;
   font-variant-numeric: tabular-nums;
-  color: var(--hold-ink);
-  opacity: 0.78;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  opacity: 0.82;
 }
 
 .ask-notice {
   margin-top: var(--s3);
   padding: var(--s2) var(--s3);
-  border: 1px solid var(--hold-ink-dim);
-  border-radius: var(--radius);
+  border: 1px solid var(--attn-line);
+  border-radius: var(--r-2);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
 }
 
 .ask-body {
-  margin-top: var(--s4);
+  margin-top: var(--s3);
 }
 
-/* the ask keeps its own reading surface, so the document is visibly a
-   different material from the console holding it */
-/* The reading surface exists for one thing only: a direction document, which
-   is genuinely a different material from the console around it. Every other
-   ask shape sits on .ask-plain, directly on the field, because the held field
-   is the only bounded surface in this console and two nested boundaries mean
-   neither of them reads as one. */
+/* The document is genuinely a different material from the console holding
+   it, so it gets the one nested frame in the tool. Every other ask shape
+   sits directly on the field. */
 .ask-surface {
-  background: var(--surface-raised);
+  background: var(--surface-2);
   color: var(--ink);
-  border-radius: var(--radius);
-  padding: var(--s5);
-  margin-top: var(--s4);
+  border-radius: var(--r-3);
+  box-shadow: var(--elev-1);
+  padding: var(--s5) var(--s4);
 }
 
 .ask-plain {
+  padding: 0 var(--s4);
   color: inherit;
 }
 
+/* The field's job is to mark, not to fill. A short ask, a question with
+   three options, is genuinely better as a whole saturated panel. A tall one
+   is not: eight findings of serif body text set in yellow on dark yellow
+   reads as a warning about the entire card rather than as the thing to read
+   now, and it is the hardest surface in the tool to read for a minute at a
+   time when reading is the only thing it is for.
+
+   Above roughly two thirds of the viewport the body moves onto the same
+   reading surface a direction document already uses. The eight pixel field
+   still frames all four edges, the headline band is still yellow and the
+   response bar is still yellow, so the card still announces itself across
+   the room. Nothing else changes, and the radius is still the one
+   concentric boundary in the tool: twenty minus the eight pixel frame is
+   exactly the twelve pixel step. */
+/* The build shape is exempt, and this is the reason. Its body already owns
+   a surface of its own, the preview frame, so putting a second one behind it
+   nests three frames: the field at 20px, this at 12px and the frame at 12px,
+   two identical fills separated by a ring and two identical radii across a
+   gap where the concentric formula asks for zero. Three frames is the
+   cards-inside-cards look, and the build shape has never needed one: what is
+   long about it is the preview, not the prose. */
+.ask.is-tall:not([data-kind="build"]) .ask-plain {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-radius: var(--r-3);
+  box-shadow: var(--elev-1);
+  padding: var(--s4);
+}
+
+.ask.is-tall:not([data-kind="build"]) .ask-body {
+  margin-top: var(--s2);
+}
+
+/* Flush to the bottom edge of the field, so it inherits the field radius on
+   the two corners it touches and takes none on the two it does not. */
 .ask-foot {
-  margin-top: var(--s4);
-  margin-left: calc(-1 * var(--s5));
-  margin-right: calc(-1 * var(--s5));
+  margin: var(--s3) calc(-1 * var(--s2)) calc(-1 * var(--s2));
   padding: var(--s3) var(--s5);
-  border-top: 1px solid var(--hold-ink-dim);
-  border-bottom-left-radius: var(--radius);
-  border-bottom-right-radius: var(--radius);
+  border-top: 1px solid var(--attn-line);
+  border-radius: 0 0 var(--r-4) var(--r-4);
 }
 
 .ask-withrail {
@@ -441,7 +1051,7 @@ button {
   gap: var(--s5);
 }
 
-/* --------------------------------------------------------------- the rail */
+/* -------------------------------------------------------------- the rail */
 
 .rail {
   display: none;
@@ -450,9 +1060,9 @@ button {
 .rail-title {
   font-size: 11.5px;
   line-height: 14px;
-  font-weight: 550;
-  letter-spacing: 0.015em;
-  color: var(--ink-3);
+  letter-spacing: 0.012em;
+  font-variation-settings: "wght" var(--w-med), "wdth" 96;
+  opacity: 0.7;
 }
 
 .rail-list {
@@ -465,14 +1075,17 @@ button {
 .rail-item {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
+  letter-spacing: 0.004em;
   text-align: left;
-  color: var(--ink-2);
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  opacity: 0.78;
   cursor: pointer;
+  transition: opacity var(--t-quick) var(--ease-standard),
+              outline-color var(--t-quick) var(--ease-standard);
 }
 
 .rail-item:hover {
-  color: var(--ink);
+  opacity: 1;
 }
 
 /* -------------------------------------------------------------- controls */
@@ -489,50 +1102,59 @@ button {
   align-items: baseline;
   gap: var(--s2);
   padding: var(--s2) var(--s3);
-  border: 1px solid currentColor;
-  border-radius: var(--radius);
+  border-radius: var(--r-2);
+  box-shadow: var(--ring-rest);
   font-size: 14px;
   line-height: 16px;
-  font-weight: 550;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
+  text-decoration: none;
+  color: inherit;
   cursor: pointer;
-  transition: background 120ms linear, transform 60ms linear;
+  /* Elevation and ring swap as a discrete step. The motion is carried by the
+     transform, because interpolating a shadow is a repaint per frame. */
+  transition: background-color var(--t-quick) var(--ease-standard),
+              transform var(--t-release) var(--ease-spring),
+              outline-color var(--t-quick) var(--ease-standard);
 }
 
-.control:hover {
-  background: color-mix(in srgb, currentColor 12%, transparent);
+.control:not(.control-quiet):hover {
+  background-color: var(--surface-3);
+  box-shadow: var(--ring-hover);
 }
 
-.control:active {
-  transform: translateY(1px);
+/* Press down is abrupt and press release springs. Contact with a physical
+   object is abrupt, because the surface stops the finger, and release is
+   elastic, because the material returns. Springing the press down is what
+   makes a button feel mushy. */
+.control:not(.control-quiet):active {
+  transform: scale(0.975);
+  box-shadow: var(--ring-press);
+  transition-duration: var(--t-press);
+  transition-timing-function: var(--ease-standard);
 }
 
+/* A control that is waiting for you to type something is not a broken
+   control. At 0.45 the label sat at 3.40:1 on the attention field in dark
+   and 2.86:1 in light, which reads as a fault rather than as a condition.
+   0.62 puts both above 4.5:1 while still being visibly not yet available. */
 .control[disabled] {
   cursor: default;
-  opacity: 0.45;
+  opacity: 0.62;
 }
 
-.control[disabled]:hover {
-  background: none;
+.holdfield .control:not(.control-quiet):hover {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .control-quiet {
-  border-color: transparent;
+  box-shadow: var(--ring-quiet);
   text-decoration: underline;
   text-underline-offset: 0.12em;
   text-decoration-thickness: 1px;
 }
 
-.key {
-  font-size: 11.5px;
-  line-height: 14px;
-  font-weight: 550;
-  letter-spacing: 0.015em;
-  opacity: 0.66;
-  font-variant-numeric: tabular-nums;
-}
-
-.send-row {
-  margin-top: var(--s3);
+.control-quiet:hover {
+  opacity: 0.7;
 }
 
 .control-wide {
@@ -543,19 +1165,37 @@ button {
   padding: var(--s3);
 }
 
-/* text you write is a document too, so you write it in the document face */
+.key {
+  font-family: var(--font-mono);
+  font-variation-settings: "wght" 500;
+  font-size: 11.5px;
+  line-height: 14px;
+  letter-spacing: 0.012em;
+  font-variant-numeric: tabular-nums;
+  padding: var(--s0) var(--s1);
+  border-radius: var(--r-1);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.send-row {
+  margin-top: var(--s3);
+}
+
+/* What you write is a document too, so you write it in the document face. */
 .write {
   display: block;
   width: 100%;
   margin-top: var(--s3);
   padding: var(--s3);
-  background: var(--surface-sunk);
+  background: var(--well);
   color: var(--ink);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--r-2);
+  box-shadow: var(--well-inset);
   font-family: var(--font-doc);
-  font-size: 16.5px;
-  line-height: 1.62;
+  font-size: 17px;
+  line-height: 1.60;
+  font-variation-settings: "wght" var(--w-doc);
   resize: vertical;
 }
 
@@ -572,21 +1212,20 @@ textarea.write {
   margin-top: var(--s4);
   font-size: 14px;
   line-height: 16px;
-  font-weight: 550;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
 }
 
 .pending {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
-  color: var(--ink-2);
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  opacity: 0.82;
 }
 
-/* ------------------------------------------------ the document, Literata */
+/* --------------------------------------------------- the document voice */
 
 .doc {
   font-family: var(--font-doc);
-  /* inherits --ink inside .ask-surface, and --hold-ink on the field */
   color: inherit;
   max-width: var(--measure-wide);
 }
@@ -596,34 +1235,40 @@ textarea.write {
 }
 
 .doc-h1 {
-  font-family: var(--font-doc);
-  font-size: 26px;
-  line-height: 32px;
-  font-weight: 600;
+  font-size: 30px;
+  line-height: 36px;
+  font-variation-settings: "wght" 600;
+}
+
+/* Focused programmatically by the rail so the caret follows the scroll.
+   It is not a control, so it takes the ring only while it genuinely has
+   focus and never a resting outline. */
+.doc h2:focus-visible,
+.doc h3:focus-visible {
+  outline: 2px solid var(--live);
+  outline-offset: 4px;
 }
 
 .doc-h2 {
-  font-family: var(--font-doc);
-  font-size: 21px;
-  line-height: 28px;
-  font-weight: 600;
+  font-size: 22px;
+  line-height: 29px;
+  font-variation-settings: "wght" 600;
   margin-top: var(--s5);
   padding-top: var(--s4);
   border-top: 1px solid var(--rule);
 }
 
 .doc-h3 {
-  font-family: var(--font-doc);
-  font-size: 17px;
-  line-height: 24px;
-  font-weight: 700;
+  font-size: 17.5px;
+  line-height: 25px;
+  font-variation-settings: "wght" 700;
   margin-top: var(--s4);
 }
 
 .doc-p {
-  font-size: 16.5px;
-  line-height: 1.62;
-  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.60;
+  font-variation-settings: "wght" var(--w-doc);
   margin-top: var(--s3);
 }
 
@@ -638,6 +1283,16 @@ textarea.write {
   border-top: 0;
 }
 
+/* A section break in a rendered document. A hairline the width of the
+   measure, because it separates sections of prose rather than framing
+   anything, and it takes the document's own rule colour. */
+.doc-rule {
+  border: 0;
+  border-top: 1px solid var(--rule-strong);
+  margin: var(--s5) 0 0;
+  height: 0;
+}
+
 .doc-list {
   margin-top: var(--s3);
   display: flex;
@@ -648,15 +1303,22 @@ textarea.write {
 .doc-li {
   position: relative;
   padding-left: var(--s4);
-  font-size: 16.5px;
-  line-height: 1.62;
+  font-size: 17px;
+  line-height: 1.60;
+  font-variation-settings: "wght" var(--w-doc);
+}
+
+/* A list nested inside an item. The item already indents its own marker,
+   so the child only needs to clear it. */
+.doc-li > .doc-list {
+  margin-top: var(--s2);
+  padding-left: var(--s2);
 }
 
 .doc-li::before {
   content: attr(data-marker);
   position: absolute;
   left: 0;
-  color: inherit;
   opacity: 0.55;
   font-variant-numeric: tabular-nums;
 }
@@ -664,29 +1326,39 @@ textarea.write {
 .doc-quote {
   margin-top: var(--s3);
   padding-left: var(--s3);
-  border-left: 1px solid var(--rule-live);
-  font-size: 16.5px;
-  line-height: 1.62;
+  border-left: 1px solid var(--rule-strong);
+  font-size: 17px;
+  line-height: 1.60;
   font-style: italic;
+  font-variation-settings: "wght" var(--w-doc);
 }
 
 .doc-code {
   max-width: var(--measure-wide);
   margin-top: var(--s3);
   padding: var(--s3);
-  background: var(--surface-sunk);
-  border-radius: var(--radius);
+  background: var(--well);
+  border-radius: var(--r-3);
+  box-shadow: var(--well-inset);
   overflow-x: auto;
   font-family: var(--font-mono);
+  font-variation-settings: "wght" 400;
   font-size: 13.5px;
   line-height: 1.55;
   white-space: pre;
 }
 
+/* font-variation-settings inherits, so a mono span inside body text was
+   drawn at the surrounding 390 or 430 rather than at its own weight. Every
+   mono element states its axis explicitly for that reason, and a
+   font-weight declaration here would have been ignored outright. */
 .mono {
   font-family: var(--font-mono);
   font-size: 0.92em;
-  font-weight: 400;
+  font-variation-settings: "wght" 400;
+  padding: 0 var(--s0);
+  border-radius: var(--r-1);
+  background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
 .doc-link {
@@ -710,22 +1382,26 @@ textarea.write {
 }
 
 .doc-table th {
-  font-family: var(--font-console);
+  font-family: var(--font-system);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 550;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.004em;
+  font-variation-settings: "wght" var(--w-med), "wdth" 96;
   text-align: left;
   padding: 0 var(--s4) var(--s2) 0;
-  border-bottom: 1px solid var(--rule-live);
+  border-bottom: 1px solid var(--rule-strong);
   white-space: nowrap;
 }
 
+/* Optical size is forced down for table cells, so the fifteen pixel rows
+   keep sturdy stems instead of taking the finer ones their size would
+   otherwise ask for. */
 .doc-table td {
   font-family: var(--font-doc);
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.45;
-  font-weight: 400;
+  font-optical-sizing: none;
+  font-variation-settings: "wght" 400, "opsz" 14;
   padding: var(--s2) var(--s4) var(--s2) 0;
   vertical-align: top;
 }
@@ -735,23 +1411,21 @@ textarea.write {
   padding-right: 0;
 }
 
-/* row hairlines only once the table is long enough to need them */
 .doc-table.rows-many tbody tr + tr td {
   border-top: 1px solid var(--rule);
 }
 
-/* the console understands the document it is being asked to approve */
+/* A colour swatch beside a hex value is a specimen, and specimens are
+   square. Rounding it makes it read as a dot. */
 .swatch {
   display: inline-block;
   width: 12px;
   height: 12px;
   margin-right: var(--s2);
   vertical-align: -1px;
-  /* An inset outline keeps the square 12px while still giving a value that
-     matches the surface an edge. An outline is not a shadow. */
+  border-radius: var(--r-0);
   outline: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   outline-offset: -1px;
-  border-radius: 0;
 }
 
 /* --------------------------------------------------------- build preview */
@@ -759,51 +1433,69 @@ textarea.write {
 .preview-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s3);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
+  letter-spacing: 0.004em;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
 }
 
+/* No opacity on the group. It created a compositing group, which made the
+   pressed state on a child unrenderable however it was written. */
 .preview-widths {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s2);
-  color: inherit;
-  opacity: 0.62;
 }
 
+/* Twenty four pixels in both directions, which is the pointer target
+   minimum, and a ring at rest so that it reads as a control rather than as
+   three loose numbers. */
 .width-pick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 24px;
+  padding: 0 var(--s2);
   cursor: pointer;
   color: inherit;
   font-variant-numeric: tabular-nums;
+  border-radius: var(--r-1);
+  box-shadow: var(--ring-rest);
+  transition: background-color var(--t-quick) var(--ease-standard),
+              outline-color var(--t-quick) var(--ease-standard);
+}
+
+.width-pick:hover {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .width-pick[aria-pressed="true"] {
-  opacity: 1;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 0.12em;
+  box-shadow: var(--ring-press);
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
 }
 
-/* Between roughly 860 and 1100px the 720 setting is wider than the column.
-   Scroll rather than clip: silently cropping a build he is about to approve
-   is the same objection the direction raises against the phone iframe. */
 .preview-frame {
   margin-top: var(--s3);
-  background: var(--surface-sunk);
-  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
-  border-radius: var(--radius);
+  background: var(--well);
+  border-radius: var(--r-3);
+  box-shadow: var(--elev-1);
   overflow: auto;
 }
 
+/* The one hardcoded colour in the build, and it stays. This frame renders
+   another project's page, which may carry no background of its own, and it
+   must not inherit this console's ground and appear to be part of it. */
 .preview-frame iframe {
   display: block;
   border: 0;
   width: 100%;
   height: 460px;
   background: #fff;
+  border-radius: var(--r-3);
 }
 
 .preview-frame[data-width="375"] iframe {
@@ -827,11 +1519,11 @@ textarea.write {
 .findings-legend {
   font-size: 14px;
   line-height: 16px;
-  font-weight: 550;
-  color: inherit;
-  opacity: 0.76;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
+  opacity: 0.8;
 }
 
+/* Severity is carried by order and weight. It is never carried by colour. */
 .finding {
   display: grid;
   grid-template-columns: 20px 108px minmax(0, 1fr);
@@ -849,6 +1541,7 @@ textarea.write {
   width: 20px;
   height: 20px;
   margin: 0;
+  border-radius: var(--r-1);
   accent-color: currentColor;
   cursor: pointer;
 }
@@ -856,23 +1549,23 @@ textarea.write {
 .finding-sev {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 550;
-  letter-spacing: 0.005em;
-  color: inherit;
+  letter-spacing: 0.004em;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
   cursor: pointer;
 }
 
-.finding-sev[data-sev="nitpick"],
-.finding-sev[data-sev="worth fixing"] {
-  font-weight: 500;
-  opacity: 0.72;
+.finding-sev[data-sev="worth fixing"],
+.finding-sev[data-sev="nitpick"] {
+  font-variation-settings: "wght" var(--w-reg), "wdth" 100;
+  opacity: 0.74;
 }
 
 .finding-text {
   font-family: var(--font-doc);
-  font-size: 16.5px;
-  line-height: 1.62;
-  max-width: 72ch;
+  font-size: 17px;
+  line-height: 1.60;
+  font-variation-settings: "wght" var(--w-doc);
+  max-width: var(--measure);
 }
 
 .finding-desc {
@@ -884,31 +1577,31 @@ textarea.write {
   display: block;
   margin-top: var(--s1);
   font-family: var(--font-mono);
+  font-variation-settings: "wght" 400;
   font-size: 13px;
   line-height: 18px;
-  color: inherit;
-  opacity: 0.66;
+  opacity: 0.68;
 }
 
 /* -------------------------------------------------------------- question */
 
 .question {
   font-family: var(--font-doc);
-  font-size: 21px;
-  line-height: 28px;
-  font-weight: 600;
-  max-width: 60ch;
+  font-size: 22px;
+  line-height: 29px;
+  font-variation-settings: "wght" 600;
+  max-width: var(--measure-tight);
 }
 
 .question-note {
   font-family: var(--font-doc);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.50;
   font-style: italic;
-  color: inherit;
-  opacity: 0.78;
+  font-variation-settings: "wght" var(--w-doc);
+  opacity: 0.8;
   margin-top: var(--s2);
-  max-width: 60ch;
+  max-width: var(--measure-tight);
 }
 
 .options {
@@ -916,173 +1609,77 @@ textarea.write {
   display: flex;
   flex-direction: column;
   gap: var(--s2);
-  max-width: 60ch;
+  max-width: var(--measure-tight);
 }
 
-/* ---------------------------------------------------- more held, promotion */
+/* -------------------------------------------------- the rest that needs you */
 
-.moreheld {
-  padding-top: var(--s4);
-}
-
-.moreheld-count {
+.morecount {
   font-size: 11.5px;
   line-height: 14px;
-  font-weight: 550;
-  letter-spacing: 0.015em;
-  color: var(--ink-3);
+  letter-spacing: 0.012em;
   font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-med), "wdth" 96;
+  color: var(--ink-3);
 }
 
-.moreheld-item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s3);
-  width: 100%;
-  padding: var(--s2) 0;
-  text-align: left;
-  cursor: pointer;
-}
-
-/* The promotion is the next held ask rising into Zone 1, and it is added by
-   app.js at the moment of promotion only. Sitting unconditionally on the
-   compact list, it was both the wrong element and a fade-in on first paint,
-   which the motion section bans by name. Transform only, no opacity. */
-.ask.is-promoting {
-  animation: promote 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes promote {
-  from {
-    transform: translateY(10px);
-  }
-}
-
-.moreheld-name {
-  font-size: 15px;
-  font-weight: 550;
-  letter-spacing: -0.005em;
-}
-
-.moreheld-what {
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-/* ------------------------------------------------------------- the line */
-
-.line-head {
-  padding-top: var(--s6);
-  padding-bottom: var(--s2);
-}
-
-.line-title {
-  font-size: 20px;
-  line-height: 26px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.line-rows {
-  border-top: 1px solid var(--rule);
-}
-
-.reg {
+.morelist {
+  margin-top: var(--s3);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 168px 200px;
-  gap: var(--s3);
-  align-items: baseline;
+  gap: var(--s2);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+/* Cards lift. This is the only element in the tool that does. */
+.morecard {
+  display: block;
   width: 100%;
-  padding: var(--s3) 0;
   text-align: left;
-  color: inherit;
+  padding: var(--s3);
+  background: var(--surface-2);
+  border-radius: var(--r-3);
+  box-shadow: var(--elev-1);
   cursor: pointer;
-  border-bottom: 1px solid var(--rule);
-  transition: background 120ms linear;
+  transform: translateY(0);
+  transition: transform var(--t-release) var(--ease-spring),
+              outline-color var(--t-quick) var(--ease-standard);
 }
 
-.reg:hover,
-.reg.is-cursor {
-  background: var(--surface-raised);
+.morecard:hover {
+  box-shadow: var(--elev-2);
+  transform: translateY(-1px);
 }
 
-/* .reg.is-cursor is (0,2,0) and :focus-visible is (0,1,0), so without the
-   :not() the cursor hairline replaced the focus ring on the eight primary
-   controls of the board the moment one of them was focused. */
-.reg.is-cursor:not(:focus-visible) {
-  outline: 1px solid var(--rule-live);
-  outline-offset: -1px;
+.morecard:active {
+  box-shadow: var(--elev-1);
+  transform: scale(0.985);
+  transition-duration: var(--t-press);
+  transition-timing-function: var(--ease-standard);
 }
 
-.reg-name {
-  font-size: 17px;
+/* The same object as a board row, so the same size as a board row. */
+.morecard-name {
+  display: block;
+  font-size: 16.5px;
   line-height: 22px;
-  font-weight: 550;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.006em;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
 }
 
-.reg-state,
-.reg-stage {
+.morecard-what {
+  display: block;
+  margin-top: var(--s1);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
-  font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-2);
 }
 
-.reg-stage {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--ink-3);
-}
-
-/* The clear row's third column is a sentence the console wrote, not a machine
-   literal, so it stays in the console voice. */
-.reg-summary {
-  font-family: var(--font-console);
-  font-size: 13px;
-  letter-spacing: 0.005em;
-}
-
-.reg[data-state="clear"] .reg-name,
-.reg[data-state="clear"] .reg-state {
-  color: var(--ink-3);
-  font-weight: 500;
-}
-
-.reg[data-state="held"] .reg-state,
-.reg[data-state="stopped"] .reg-state {
-  color: var(--hold-mark);
-  font-weight: 600;
-}
-
-/* -------------------------------------------------- calm and empty states */
-
-.calm {
+.more {
   padding-top: var(--s5);
 }
 
-.calm-line {
-  font-size: 20px;
-  line-height: 26px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.calm-sub {
-  margin-top: var(--s2);
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-2);
-  max-width: 62ch;
-}
+/* ------------------------------------------------------------ empty state */
 
 .empty {
   padding-top: var(--s6);
@@ -1091,69 +1688,81 @@ textarea.write {
 .empty-line {
   font-size: 20px;
   line-height: 26px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
 }
 
 .empty-sub {
   margin-top: var(--s2);
-  font-size: 15px;
+  font-size: 16.5px;
   line-height: 22px;
+  letter-spacing: -0.006em;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 100;
   color: var(--ink-2);
-  max-width: 58ch;
+  max-width: var(--measure-tight);
 }
 
-/* ------------------------------------------------------------- project view */
+/* ---------------------------------------------------------- project view */
 
 .back {
   display: inline-block;
-  padding-top: var(--s5);
+  margin-top: var(--s5);
+  padding: var(--s1) 0;
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
+  letter-spacing: 0.004em;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-2);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.12em;
+  transition: color var(--t-quick) var(--ease-standard),
+              outline-color var(--t-quick) var(--ease-standard);
+}
+
+.back:hover {
+  color: var(--ink);
 }
 
 .proj-head {
-  padding-top: var(--s3);
-  padding-bottom: var(--s4);
+  padding: var(--s3) 0 var(--s4);
 }
 
+/* A view heading, which is the 20px step. The 28px step belongs to the ask
+   headline, and only to it: the ask is the thing on this page that wants
+   answering. */
 .proj-name {
-  font-size: 27px;
-  line-height: 33px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-size: 20px;
+  line-height: 26px;
+  letter-spacing: -0.012em;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
 }
 
 .proj-state {
   margin-top: var(--s2);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.004em;
   font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-2);
+  max-width: var(--measure-tight);
 }
 
-.proj-state .mono {
-  color: var(--ink-3);
+.proj-flow {
+  padding-bottom: var(--s4);
 }
 
 .hist-title {
   padding-top: var(--s4);
   font-size: 14px;
   line-height: 16px;
-  font-weight: 550;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
   color: var(--ink-2);
 }
 
 .hist {
-  padding-top: var(--s3);
-  padding-bottom: var(--s6);
+  padding: var(--s3) 0 var(--s6);
 }
 
 .hist-row {
@@ -1167,34 +1776,34 @@ textarea.write {
 .hist-at {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-3);
 }
 
 .hist-what {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.004em;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-2);
 }
 
-/* your lines are set in the document face, so you can see your own hand */
+/* Your own lines are set in the document face, so you can see your hand. */
 .hist-row[data-kind="decision"] .hist-what {
   font-family: var(--font-doc);
   font-size: 15px;
-  line-height: 1.5;
-  font-weight: 400;
+  line-height: 1.50;
   letter-spacing: 0;
+  font-variation-settings: "wght" var(--w-doc);
   color: var(--ink);
 }
 
 .hist-detail {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-3);
   white-space: nowrap;
 }
@@ -1203,31 +1812,29 @@ textarea.write {
   grid-column: 2 / -1;
   margin-top: var(--s1);
   padding-left: var(--s3);
-  border-left: 1px solid var(--rule-live);
+  border-left: 1px solid var(--rule-strong);
   font-family: var(--font-doc);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.50;
   font-style: italic;
+  font-variation-settings: "wght" var(--w-doc);
   color: var(--ink-2);
-  max-width: 62ch;
+  max-width: var(--measure-tight);
 }
 
 /* ---------------------------------------------------------------- footer */
 
 .foot {
-  padding-top: var(--s5);
-}
-
-.foot-inner {
+  margin-top: var(--s5);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--s3);
-  padding-top: var(--s3);
-  border-top: 1px solid var(--rule);
+  gap: var(--s4);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
   color: var(--ink-3);
 }
 
@@ -1236,6 +1843,8 @@ textarea.write {
   color: var(--ink-2);
   text-decoration: underline;
   text-underline-offset: 0.12em;
+  transition: color var(--t-quick) var(--ease-standard),
+              outline-color var(--t-quick) var(--ease-standard);
 }
 
 .theme-toggle:hover {
@@ -1246,7 +1855,7 @@ textarea.write {
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------------------------------------ wide, rail */
+/* --------------------------------------------------------- wide, the rail */
 
 @media (min-width: 1100px) {
   .rail {
@@ -1254,35 +1863,56 @@ textarea.write {
     padding-top: var(--s1);
   }
 
+  /* The rail is first in the DOM so that a keyboard or screen reader user
+     meets the table of contents before the document rather than after it.
+     Grid puts it back on the right, which is where it belongs to look at. */
   .ask-withrail {
     grid-template-columns: minmax(0, 1fr) 172px;
   }
+
+  .ask-withrail > .rail {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .ask-withrail > .ask-surface {
+    grid-column: 1;
+    grid-row: 1;
+  }
 }
 
-/* --------------------------------------------------------- half width, 720 */
+/* ------------------------------------------------------- half width, 720 */
 
-@media (max-width: 860px) {
-  .reg {
-    grid-template-columns: minmax(0, 1fr) 168px;
-    row-gap: var(--s1);
+@media (max-width: 900px) {
+  :root {
+    --col-name: 160px;
+    --col-time: 96px;
+    --row-h: 40px;
   }
 
-  .reg-stage {
-    grid-column: 1 / -1;
+  .fhead-long {
+    display: none;
   }
 
-  .ask {
-    padding-left: var(--s4);
-    padding-right: var(--s4);
+  .fhead-short {
+    display: inline;
+  }
+
+  .ask-head {
+    padding-left: var(--s3);
+    padding-right: var(--s3);
+  }
+
+  .ask-plain {
+    padding-left: var(--s3);
+    padding-right: var(--s3);
   }
 
   .ask-surface {
-    padding: var(--s4);
+    padding: var(--s4) var(--s3);
   }
 
   .ask-foot {
-    margin-left: calc(-1 * var(--s4));
-    margin-right: calc(-1 * var(--s4));
     padding-left: var(--s4);
     padding-right: var(--s4);
   }
@@ -1292,7 +1922,8 @@ textarea.write {
 
 @media (max-width: 560px) {
   :root {
-    --gutter: 20px;
+    /* Tall enough for three stacked passes and the deepest return arc. */
+    --row-h: 30px;
   }
 
   .shell,
@@ -1301,40 +1932,131 @@ textarea.write {
     padding-right: var(--s3);
   }
 
-  .ask-headline {
-    font-size: 21px;
-    line-height: 27px;
+  /* Column headers are dropped. The track becomes one full width rule with
+     two hairline ticks at the third positions, so the topology survives as
+     proportion rather than as labels. */
+  .fhead {
+    display: none;
   }
 
-  /* Every inset costs measure, and at 375 the insets were costing more than
-     the 15.5px prose size was buying. The field keeps a narrow margin, and
-     the document's reading surface goes full bleed inside it: it still reads
-     as a different material because of its ground, without paying twice for
-     a boundary. Measure goes from roughly 31 characters to roughly 38. */
+  /* Two lines, not three. The name, the stage and the status word share
+     line one, and the thread has line two to itself. Giving the stage a
+     third row cost about twenty pixels a row, and across a full board that
+     pushed the open ask, which is what he came to the phone for, below the
+     fold. */
+  .frow {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    row-gap: var(--s0);
+    align-items: baseline;
+    padding: var(--s1) var(--s2);
+  }
+
+  .frow-name {
+    grid-column: 1;
+    grid-row: 1;
+    padding-right: var(--s2);
+  }
+
+  /* The status word leaves the terminus at this width only. */
+  .frow-word {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    align-self: baseline;
+    margin-left: 0;
+    margin-top: 0;
+  }
+
+  /* Back into the box at this width, folded onto line one beside the name
+     rather than given a row of its own. */
+  .frow-stage {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip-path: none;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    line-height: 15px;
+    padding: 0 var(--s2);
+  }
+
+  .frow-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 30px;
+  }
+
+  .frow-time {
+    display: none;
+  }
+
+  /* Still eight, so the reading surface inside is still twenty minus eight,
+     which is still exactly the twelve pixel step. Padding six here would
+     have asked for a fourteen pixel inner radius that the scale does not
+     have. */
   .ask {
-    padding-left: var(--s3);
-    padding-right: var(--s3);
+    padding: var(--s2);
+  }
+
+  .ask-mini {
+    display: none;
+  }
+
+  .ask-headline {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  .ask-head {
+    padding-left: var(--s2);
+    padding-right: var(--s2);
+  }
+
+  .ask-plain {
+    padding-left: var(--s2);
+    padding-right: var(--s2);
+  }
+
+  /* The desktop tall-ask rule is more specific than the one above it, so
+     without this the phone lost 28px of measure to padding it did not
+     choose. */
+  .ask.is-tall:not([data-kind="build"]) .ask-plain {
+    padding: var(--s3);
   }
 
   .ask-surface {
-    margin-left: calc(-1 * var(--s3));
-    margin-right: calc(-1 * var(--s3));
     padding: var(--s3);
-    border-radius: 0;
   }
 
   .ask-foot {
-    margin-left: calc(-1 * var(--s3));
-    margin-right: calc(-1 * var(--s3));
-    padding-left: var(--s3);
-    padding-right: var(--s3);
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: var(--s3) calc(-1 * var(--s2)) calc(-1 * var(--s2));
+    padding: var(--s3) var(--s4);
+    background: var(--attn-field);
+    border-radius: 0 0 var(--r-4) var(--r-4);
+    /* The only use of the third elevation level in the whole tool. There are
+       no modals, no toasts and no popovers here; this bar is the one thing
+       that genuinely floats over content. */
+    box-shadow: var(--elev-3);
+    animation: risebar var(--t-move) var(--ease-enter);
+  }
+
+  @keyframes risebar {
+    from {
+      transform: translateY(100%);
+    }
   }
 
   .doc-p,
   .doc-li,
   .doc-quote,
   .finding-text {
-    font-size: 15.5px;
+    font-size: 16px;
   }
 
   .doc > * {
@@ -1342,32 +2064,11 @@ textarea.write {
   }
 
   /* A table that runs past the column scrolls in place, and the edge it
-     scrolls under is marked with a hairline. No shadow, no gradient. */
+     scrolls under is marked with a hairline. Font size is never reduced to
+     force a table to fit. */
   .doc-tablewrap {
     border-right: 1px solid color-mix(in srgb, currentColor 26%, transparent);
     padding-right: var(--s2);
-  }
-
-  /* Two lines, per the layout section: the name, then the state and the
-     stage sharing the second. Three lines was a third of the viewport for
-     one row. */
-  .reg {
-    grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: var(--s1);
-    column-gap: var(--s3);
-  }
-
-  .reg-name {
-    grid-column: 1 / -1;
-  }
-
-  .reg-state {
-    grid-column: 1;
-  }
-
-  .reg-stage {
-    grid-column: 2;
-    text-align: right;
   }
 
   .finding {
@@ -1380,10 +2081,7 @@ textarea.write {
     height: 24px;
   }
 
-  .finding-sev {
-    grid-column: 2;
-  }
-
+  .finding-sev,
   .finding-text {
     grid-column: 2;
   }
@@ -1393,14 +2091,6 @@ textarea.write {
     padding: var(--s3);
   }
 
-  /* the response bar pins to the bottom of the viewport */
-  .ask-foot {
-    position: sticky;
-    bottom: 0;
-    background: var(--hold-field);
-    z-index: 2;
-  }
-
   .hist-row {
     grid-template-columns: 62px minmax(0, 1fr);
   }
@@ -1408,40 +2098,76 @@ textarea.write {
   .hist-detail {
     grid-column: 2;
   }
+
+  .morelist {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-/* -------------------------------------------------------- reduced motion */
+/* -------------------------------------------------------- reduced motion
+ *
+ * Reduced motion means reduced movement, not a hard cut to zero on
+ * everything. Nothing overshoots and nothing translates. Colour and opacity
+ * still move, at up to 140ms, because instantly swapping a background is
+ * jarring in its own way. Every degradation here is lossless, because in
+ * each case a word or a glyph already carries the meaning.
+ */
 
 @media (prefers-reduced-motion: reduce) {
-  .spine[data-state="running"]::after {
-    animation: none;
-    height: 50%;
+  :root {
+    /* The only global substitution, and the most important one: overshoot is
+       the specific thing that causes vestibular discomfort. */
+    --ease-spring: var(--ease-standard);
+  }
+
+  /* Selector matched to the one it is overriding. The press rule is scoped
+     with :not(.control-quiet), so a plain .control:active here would lose
+     on specificity and the scale would survive reduced motion. */
+  .control:not(.control-quiet):active {
+    transform: none;
+    background-color: color-mix(in srgb, currentColor 22%, transparent);
+  }
+
+  .morecard:hover,
+  .morecard:active {
     transform: none;
   }
 
-  .spine.is-releasing::before {
-    animation: none;
-    bottom: 0;
+  /* Not silence. Nothing translates, but something still has to say that
+     the thing in front of you was replaced, so both of these become a
+     120ms fade in place. */
+  .ask.is-promoting {
+    animation: settle-in 120ms var(--ease-standard);
   }
 
-  .spine.is-releasing::after {
-    transition: none;
+  @keyframes settle-in {
+    from {
+      opacity: 0.5;
+    }
   }
 
   .ask.is-draining {
+    animation-duration: var(--t-quick);
+  }
+
+  .ask-foot {
+    animation: settle-in 120ms var(--ease-standard);
+  }
+
+  /* The thread still arrives at its new length and the arc still exists.
+     They just do not travel: reduced motion must never remove information. */
+  .frow.is-advancing .thread-line {
     animation: none;
   }
 
-  .ask.is-promoting {
+  /* A static half filled span in the running column. Half of the window,
+     which is half of the column, so it stays contained at every width. The
+     state is still carried chromatically and by the word running. */
+  .seg {
     animation: none;
-  }
-
-  .control {
-    transition: background 1ms linear;
-  }
-
-  .control:active {
+    width: 50%;
     transform: none;
-    background: color-mix(in srgb, currentColor 22%, transparent);
+    background-image: none;
+    background-color: var(--live);
   }
 }

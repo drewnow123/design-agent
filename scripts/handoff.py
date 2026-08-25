@@ -13,7 +13,7 @@ server may be writing an answer at the same moment.
     handoff.py finish  <slug> <stage> [--detail] a subagent returned
     handoff.py hold    <slug> --kind ...         park it, the operator decides
     handoff.py ready   <slug>                    answered, next stage not begun
-    handoff.py clear   <slug>                    signed off, the line is clear
+    handoff.py clear   <slug>                    signed off
     handoff.py stop    <slug> --stage <stage>    a stage failed
     handoff.py note    <slug> "text" [--quote]   record an operator decision
     handoff.py drain   [--archive]               read the answers inbox
@@ -78,9 +78,10 @@ def cmd_start(args) -> int:
         project["stage"] = args.stage
         set_state(project, "running")
         project["ask"] = None
-        add_history(project, "stage", f"{args.stage} started")
+        add_history(project, "stage", f"{args.stage} started",
+                    stage=args.stage, event="started")
         write_state(state)
-    print(f"{args.slug}: running, {args.stage}")
+    print(f"{args.slug}: running at {args.stage}")
     return 0
 
 
@@ -90,7 +91,8 @@ def cmd_finish(args) -> int:
         project = project_for(state, args.slug)
         project["stage"] = args.stage
         project["stageCount"] = int(project.get("stageCount", 0)) + 1
-        add_history(project, "stage", f"{args.stage} finished", detail=args.detail)
+        add_history(project, "stage", f"{args.stage} finished", detail=args.detail,
+                    stage=args.stage, event="finished")
         # Finishing is not by itself a state change. The orchestrator either
         # holds for a decision or starts the next stage, and both say so.
         write_state(state)
@@ -98,10 +100,17 @@ def cmd_finish(args) -> int:
     return 0
 
 
-def build_ask(project: dict, args) -> dict:
+def build_ask(project: dict, args, reuse_id: str = None) -> dict:
+    """Build the ask. `reuse_id` keeps an existing id rather than minting one.
+
+    Minting is not free: `next_ask_id` increments a counter that the
+    operator's saved drafts are keyed on, so calling it and then deciding not
+    to use the result orphans whatever is in the browser. The caller decides
+    the id first, and only then is a new one allocated.
+    """
     kind = args.kind
     ask = {
-        "id": next_ask_id(project, kind),
+        "id": reuse_id or next_ask_id(project, kind),
         "revision": 1,
         "kind": kind,
         "headline": args.headline,
@@ -175,18 +184,27 @@ def cmd_hold(args) -> int:
     with state_lock():
         state = load()
         project = project_for(state, args.slug)
-        ask = build_ask(project, args)
         previous = project.get("ask") or {}
-        # Re-holding the same ask id keeps the operator's draft alive and only
-        # bumps the revision, which is what the 409 check is comparing.
-        if previous.get("id") == ask["id"]:
+
+        # Re-holding an open ask of the same kind keeps its id, which is what
+        # the operator's typed draft is saved against, and bumps its revision,
+        # which is what the server's 409 check compares.
+        #
+        # This used to build the ask first and then compare ids, which could
+        # never match: building one allocates the next id unconditionally. So
+        # the revision was permanently 1, the 409 could never fire on the
+        # change it was written for, and every re-hold silently orphaned a
+        # draft. Amendment D exists to stop exactly that.
+        reuse = previous.get("id") if previous.get("kind") == args.kind else None
+        ask = build_ask(project, args, reuse_id=reuse)
+        if reuse:
             ask["revision"] = int(previous.get("revision", 1)) + 1
         project["ask"] = ask
         if args.agent:
             project["stage"] = args.agent
         set_state(project, "held")
         write_state(state)
-    print(f"{args.slug}: held, {ask['kind']} ({ask['id']} rev {ask['revision']})")
+    print(f"{args.slug}: held on {ask['kind']} ({ask['id']} rev {ask['revision']})")
     return 0
 
 
@@ -209,7 +227,7 @@ def cmd_clear(args) -> int:
         if args.stages is not None:
             project["stageCount"] = args.stages
         set_state(project, "clear")
-        add_history(project, "decision", "you signed off. the line is clear.")
+        add_history(project, "decision", "you signed off.")
         write_state(state)
     print(f"{args.slug}: clear")
     return 0
@@ -234,7 +252,8 @@ def cmd_stop(args) -> int:
                         {"id": "o2", "label": "Close the project"}],
         }
         set_state(project, "stopped")
-        add_history(project, "stage", f"{args.stage} stopped", detail=args.detail)
+        add_history(project, "stage", f"{args.stage} stopped", detail=args.detail,
+                    stage=args.stage, event="failed")
         write_state(state)
     print(f"{args.slug}: stopped at {args.stage}")
     return 0
@@ -244,7 +263,8 @@ def cmd_note(args) -> int:
     with state_lock():
         state = load()
         project = project_for(state, args.slug)
-        add_history(project, "decision", args.text, detail=args.detail, quote=args.quote)
+        add_history(project, "decision", args.text, detail=args.detail,
+                    quote=args.quote, event=args.event)
         write_state(state)
     print(f"{args.slug}: recorded")
     return 0
@@ -253,10 +273,14 @@ def cmd_note(args) -> int:
 def cmd_drain(args) -> int:
     """Read the answers the operator gave, oldest first.
 
-    `.partial` files are skipped by name: a response is staged under that name
-    before state.json moves, so one left behind means the write died early and
-    the project it belongs to is still held. Replaying it would apply a
-    decision the operator never completed.
+    A response is staged under a `.partial` name before state.json moves, so
+    one left behind means the write died early and the project it belongs to
+    is still held. Replaying it would apply a decision the operator never
+    completed, so it must not be drained.
+
+    The glob below is what excludes them, because a staged file is named
+    `.partial` rather than `.json`. The explicit name filter after it is
+    redundant and is kept only as a guard against that naming changing.
     """
     if not RESPONSES.is_dir():
         print("nothing waiting")
@@ -346,7 +370,7 @@ def main() -> int:
     p = sub.add_parser("ready", help="answered, next stage not begun")
     p.add_argument("slug"); p.set_defaults(func=cmd_ready)
 
-    p = sub.add_parser("clear", help="signed off, the line is clear")
+    p = sub.add_parser("clear", help="signed off")
     p.add_argument("slug"); p.add_argument("--stages", type=int)
     p.set_defaults(func=cmd_clear)
 
@@ -359,6 +383,9 @@ def main() -> int:
     p.add_argument("slug"); p.add_argument("text")
     p.add_argument("--quote", help="written feedback, verbatim")
     p.add_argument("--detail")
+    p.add_argument("--event", choices=("returned",),
+                   help="mark this decision as sending work back, which is "
+                        "what redraws the thread from the builder column")
     p.set_defaults(func=cmd_note)
 
     p = sub.add_parser("drain", help="read the answers inbox")

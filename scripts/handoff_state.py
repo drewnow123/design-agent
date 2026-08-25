@@ -30,6 +30,10 @@ STATES = ("held", "running", "ready", "clear", "stopped")
 ASK_KINDS = ("direction", "build", "findings", "question")
 SEVERITIES = ("must-fix", "worth fixing", "nitpick")
 
+# The optional `event` vocabulary on a history entry. Three values, matching
+# the three things that can happen to a stage.
+EVENTS = ("started", "finished", "failed", "returned")
+
 LOCK_TIMEOUT = 10.0        # seconds to wait for another writer
 LOCK_STALE = 60.0          # a lock older than this is assumed abandoned
 
@@ -68,8 +72,20 @@ def state_lock():
         except FileExistsError:
             try:
                 age = time.time() - LOCK.stat().st_mtime
-            except OSError:
+            except FileNotFoundError:
                 continue                      # it vanished, try to take it
+            except OSError:
+                # Any other stat failure is not a missing lock, and looping
+                # straight back skipped both the deadline and the sleep. In a
+                # request handling thread that is a core at a hundred percent
+                # with no way out.
+                if time.monotonic() > deadline:
+                    raise TimeoutError(
+                        "could not read .handoff/state.lock. "
+                        "if nothing else is running, delete it."
+                    )
+                time.sleep(0.05)
+                continue
             if age > LOCK_STALE:
                 LOCK.unlink(missing_ok=True)
                 continue
@@ -141,18 +157,35 @@ def find_project(state: dict, slug: str):
 
 
 def add_history(project: dict, kind: str, text: str,
-                detail: str = None, quote: str = None, at: str = None) -> dict:
+                detail: str = None, quote: str = None, at: str = None,
+                stage: str = None, event: str = None) -> dict:
     """Append one register entry.
 
     Only three kinds of event belong in the register: a stage started, a stage
     finished, and a decision the operator made. `kind` is `stage` or `decision`
     because the console sets those two in different faces.
+
+    `stage` and `event` are optional and are the machine readable form of what
+    `text` says in prose. The console draws each project as a thread across the
+    three stage columns, and deriving that thread by parsing free-form English
+    is brittle: one reworded message and a project's line disappears. Writing
+    both fields makes the drawing exact.
+
+    They are purely additive. `text` is still written, and the console still
+    parses it when they are absent, so every state file produced before this
+    existed keeps rendering. `event` is `started`, `finished` or `failed`.
     """
     entry = {"at": at or utc_now(), "kind": kind, "text": text}
     if detail:
         entry["detail"] = detail
     if quote:
         entry["quote"] = quote
+    if stage:
+        entry["stage"] = stage
+    if event:
+        if event not in EVENTS:
+            fail(f"'{event}' is not one of: {', '.join(EVENTS)}")
+        entry["event"] = event
     project.setdefault("history", []).append(entry)
     return entry
 

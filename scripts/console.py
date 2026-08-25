@@ -77,6 +77,7 @@ CONTENT_TYPES = {
     ".png": "image/png",
     ".ico": "image/x-icon",
     ".md": "text/plain; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
 }
 
 SAFE_SLUG = re.compile(r"[^a-z0-9._-]+")
@@ -158,6 +159,15 @@ def apply_response(state: dict, project: dict, decision: str, payload: dict) -> 
         "kind": "decision",
         "text": decision_line(ask, decision, payload),
     }
+    # Sending work back is the single event that most changes the drawing, so
+    # it is recorded rather than left to be parsed out of English later. This
+    # is the authoritative instant: it is the moment the decision is made.
+    # The console keeps a phrase match as a fallback for entries written
+    # before this field existed.
+    if decision == "changes" or (decision == "send-findings"
+                                 and payload.get("findings")):
+        entry["event"] = "returned"
+
     note = str(payload.get("note") or "").strip()
     if note and decision == "changes":
         entry["quote"] = note
@@ -166,13 +176,18 @@ def apply_response(state: dict, project: dict, decision: str, payload: dict) -> 
     project["state"] = "ready"
     project["since"] = now
     project["ask"] = None
-    state["generated"] = now
+    # `generated` is not set here. write_state stamps it, and setting it twice
+    # only invited the two values to disagree.
     return state
 
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "Handoff/1.0"
     protocol_version = "HTTP/1.1"
+    # A client that announces a Content-Length and then under-delivers used to
+    # block a handler thread in rfile.read forever. This binds the socket to a
+    # deadline instead.
+    timeout = 20
 
     # ---- plumbing -------------------------------------------------------
 
@@ -188,7 +203,8 @@ class Handler(BaseHTTPRequestHandler):
         # this tool sits next to would be worse than useless.
         try:
             super().handle_one_request()
-        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError,
+                TimeoutError):
             self.close_connection = True
 
     def host_allowed(self) -> bool:
@@ -227,6 +243,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
         # The state is live by definition. Nothing about it may be cached.
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
@@ -237,6 +254,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
 
@@ -278,6 +296,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type",
                          CONTENT_TYPES.get(target.suffix, "application/octet-stream"))
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
         if target.suffix == ".woff2":
             self.send_header("Cache-Control", "public, max-age=31536000, immutable")
         else:
@@ -293,6 +312,16 @@ class Handler(BaseHTTPRequestHandler):
         route = urllib.parse.urlparse(self.path).path
         if route != "/api/respond":
             self.send_json(404, {"error": "no such route"})
+            return
+
+        # A cross origin form posting text/plain is a simple request, so it
+        # never meets a preflight and the Host gate is the only thing in its
+        # way. Requiring the content type the console actually sends closes
+        # that path for one line.
+        ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if ctype != "application/json":
+            self.close_connection = True
+            self.send_json(415, {"error": "Content-Type must be application/json"})
             return
 
         try:
@@ -399,8 +428,18 @@ class Handler(BaseHTTPRequestHandler):
                 raise
             os.replace(staged, out)
 
-        sys.stderr.write("  wrote " + str(out.relative_to(Path.cwd().resolve())) + chr(10))
+        # The write is committed. Acknowledge it before doing anything else:
+        # this used to compute a relative path first, and a path that would
+        # not relativise raised out of the handler, so the client got no
+        # response at all and the console told the operator that nothing had
+        # been written when in fact everything had.
         self.send_json(200, state)
+
+        try:
+            written = out.relative_to(Path.cwd().resolve())
+        except ValueError:
+            written = out
+        sys.stderr.write("  wrote " + str(written) + chr(10))
 
 
 def main() -> int:

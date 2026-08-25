@@ -1,7 +1,18 @@
-# Handoff
+# Front End Agents
 
 A local console for one person to see where the design pipeline stopped, and
 to release it. It reads `.handoff/state.json` and writes real responses back.
+
+The board is a flow diagram: three stage columns, one project per row, and each
+project drawn as a horizontal thread across those columns. The thread stops
+where the project's record stops, and doubles back under the row where the
+reviewer sent work back.
+
+**The tool is called Front End Agents on screen only.** Every file path, route,
+Python identifier and browser storage key still says `handoff`. That is
+deliberate: the console is deployed from a systemd unit, so a path rename
+breaks a live service, and renaming a `localStorage` key silently discards the
+operator's saved theme and every draft of typed feedback.
 
 ## Running it
 
@@ -17,12 +28,12 @@ library. The fonts are self hosted in `fonts/`.
 
 Opening `index.html` through `static-preview` (port 8788) also works, but the
 API is not there, so the console falls back to `state.sample.json` and prints
-`sample data. the api is not running.` in the footer.
+`sample data. the server is not running.` in the footer.
 
 ## Keyboard
 
 Printed next to the controls it applies to. `j` and `k` move down and up the
-line, `Enter` opens the project under the cursor, `a` takes the primary action
+board, `Enter` opens the project under the cursor, `a` takes the primary action
 on the open ask, `c` requests changes, `1` to `4` pick a question option, and
 `Esc` goes back to the board.
 
@@ -50,8 +61,11 @@ python scripts/handoff.py show
 `hold --kind` takes `direction` (`--doc FILE`), `build` (`--preview URL`,
 repeatable `--changed`), `findings` (`--findings FILE`, a json array of
 `{severity, text, where}`) or `question` (`--question`, two to four repeatable
-`--option`). Re-holding the same ask bumps `revision` instead of minting a new
-id, which keeps the operator's typed draft alive.
+`--option`). **Re-holding an open ask of the same kind keeps its id and bumps
+its `revision`**, rather than minting a new id. That is what keeps the
+operator's typed draft alive, because a draft is saved against the ask id, and
+it is what lets the server's 409 fire on a revision that actually changed.
+Holding a different kind mints a new id, as it should.
 
 `drain` prints the answers waiting in `.handoff/responses/`, oldest first, and
 `--archive` moves them into `responses/processed/` once acted on. Files ending
@@ -83,25 +97,39 @@ because it is runtime state rather than source.
 |---|---|---|---|
 | `slug` | string | yes | The project's directory name under `work/`. Used as its display name and as the key `POST /api/respond` matches on. |
 | `state` | string | yes | One of `held`, `running`, `ready`, `clear`, `stopped`. Nothing else renders. |
-| `stage` | string | yes | The agent this project is at, for example `component-builder`. Set in the machine face, so use the real agent name. |
+| `stage` | string | yes | The agent this project is at, for example `component-builder`. Use the real agent name: it selects the column the thread is drawn to. |
 | `since` | string | yes | UTC instant the project entered `state`. Drives the elapsed time on `running` and the timestamp on `stopped`. |
 | `stageCount` | number | no | How many stages have run. Shown only when `state` is `clear`. |
 | `ask` | object or null | yes | The open ask. Must be present when `state` is `held` or `stopped`, and `null` otherwise. |
-| `history` | array | yes | What happened, oldest first. Never reordered by the console. |
+| `history` | array | yes | What happened, oldest first. Never reordered by the console. This is what the thread is drawn from. |
 | `askSeq` | object | no | Per kind counter behind the `<slug>/<kind>/<n>` ask ids. Written by `handoff.py`, ignored by the console. Do not renumber it: browser drafts are keyed on the ask id it produces. |
 
-The five states:
+The five states, and the terminus each one draws at the end of its thread:
 
-| `state` | Means | What the console draws |
-|---|---|---|
-| `held` | Parked at a handoff, needs a decision | Rule stops with a cross bar, and the ask renders in full on the board |
-| `running` | A stage is executing right now | Rule continues, a segment travels down it |
-| `ready` | Answered, next stage not started | Rule continues solid |
-| `clear` | Every stage ran and was signed off | Rule terminates in a filled square, the row recedes |
-| `stopped` | A stage failed, or the project was closed | Rule ends in a diagonal cut, and the field carries a border |
+| `state` | Means | The mark at the end of the thread | The word |
+|---|---|---|---|
+| `held` | Parked at a handoff, needs a decision | A 12px vertical cross tick | `needs you` |
+| `running` | A stage is executing right now | No terminus. A segment travels forward inside the running stage's column | `running` |
+| `ready` | Answered, next stage not started | The thread ends flush at the column boundary, unmarked | `answered` |
+| `clear` | Every stage ran and was signed off | A filled 6px square | `done` |
+| `stopped` | A stage failed, or the project was closed | A diagonal cut through the thread | `stopped` |
 
-Only `held` projects appear in the top zone of the board. A `stopped` project
-carries its ask too, reachable from its own page.
+**A `stopped` project needs you exactly as much as a `held` one does.** Both
+carry an open ask, both share the attention hue, and `handoff.py show` has
+always counted both as waiting. So does the console: the count in the top
+right, the `document.title` and the list of what else needs answering all
+include stopped projects.
+
+Only the oldest of them renders its ask in full at the top of the board.
+The rest appear as compact cards under it. A `stopped` project carries its ask
+too, reachable from its own page.
+
+At 375px a row is two lines rather than three: the project name, the stage and
+the status word share line one, and the thread has line two to itself. Above
+that breakpoint the stage name is visually hidden but stays in the box, so it
+still reaches assistive technology. That matters more than it looks: the
+column headers and the whole drawing are `aria-hidden`, so it is the only
+thing telling a screen reader which stage a project is at.
 
 ### A history entry
 
@@ -110,11 +138,85 @@ carries its ask too, reachable from its own page.
 | `at` | string | yes | UTC instant, or a bare `YYYY-MM-DD` when the clock time genuinely was not recorded. A bare date prints as `Aug 23` rather than a made up time. |
 | `kind` | string | yes | `stage` for something the machine did, `decision` for something the operator did. Decisions are set in the document face. |
 | `text` | string | yes | One line, lower case, in the console's voice. For example `component-builder finished`. |
+| `stage` | string | no | The agent name this entry is about, for example `component-builder`. See below. |
+| `event` | string | no | `started`, `finished` or `failed`. See below. |
 | `detail` | string | no | A measured value shown hard right. For example `12 files` or `2,840 words`. |
 | `quote` | string | no | Written feedback, verbatim. Set in the document face under the entry. |
 
 Only three kinds of event belong here: a stage started, a stage finished, and a
 decision the operator made. Not tool calls, not file reads, not token counts.
+
+#### `stage` and `event`
+
+These two are optional, and they are the machine readable form of what `text`
+already says in prose. The console draws each project's thread from its
+history, and deriving that thread by parsing free-form English is brittle: one
+reworded message and a project's line disappears from the board. Writing both
+fields makes the drawing exact.
+
+```json
+{
+  "at": "2026-08-25T06:01:00Z",
+  "kind": "stage",
+  "text": "component-builder finished",
+  "stage": "component-builder",
+  "event": "finished",
+  "detail": "4 files"
+}
+```
+
+`scripts/handoff.py` writes them on `start`, `finish` and `stop`. They are
+**purely additive**:
+
+- `text` is still written, and is still what a person reads.
+- When they are absent, the console parses `text` against the known agent names
+  and the words `started`, `finished` and `stopped`. Every state file produced
+  before these fields existed still draws a complete thread. `state.sample.json`
+  ships one project in the old shape on purpose, so the fallback is exercised
+  by the shipped file rather than only by a test.
+- An entry with neither field and no parseable text is skipped by the drawing
+  rather than guessed at. It still renders in the project's history list.
+- A `decision` entry carries neither field. Returns are read from the decision
+  text instead: `you sent it back`, or `you sent 3 of 8 back to the builder`.
+
+How a thread is built from these:
+
+| Recorded | Where the thread reaches |
+|---|---|
+| `started` | The middle of that stage's column |
+| `finished` | The right boundary of that stage's column |
+| `failed` | The middle of that stage's column, where it died |
+| a return decision | The thread restarts from the builder column, and a repeat mark is added |
+
+**A row draws one pass: the current one.** The thread runs from where this
+pass began to where the record stops, on the same baseline as every other row
+on the board. A project that has been sent back carries a **repeat mark**, one
+short tick per return up to three, hanging below the point work came back to,
+which is where the current pass begins. The pass count prints in the time
+column whenever that cell has nothing else to say, and always once there have
+been more than three.
+
+Earlier passes are not drawn. Two rounds were spent stacking them as parallel
+hairlines joined by return arcs, and on screen that is a hollow rectangle
+rather than a thread: the eye segments the closed shape before it reads any
+line weight, so widening the spacing and receding the tone did not rescue it.
+This gives up the claim in `DIRECTION-2.md` section 6 that a thread can be
+physically longer than the track. That loss was authorised at review. The
+count carries the fact the drawing was trying to carry, and it carries it
+legibly.
+
+**Nothing is ever drawn behind the status word.** A terminus that stops mid
+track, which is every project held or answered before the reviewer, would
+otherwise have the track running straight through its own label, which is not
+a label but a strikethrough. The track and the thread break around the word
+with five pixels of clear space either side. They break rather than the word
+being plated with a background colour, because a plate stops matching the
+moment the row takes its hover fill, and a break is what a technical drawing
+does where a dimension line meets its own number.
+
+A history entry naming a stage outside the three pipeline agents appends a
+fourth column at the right rather than being dropped. Silently discarding a
+recorded event is worse than an odd looking board.
 
 ### An ask
 
@@ -128,13 +230,13 @@ Common to all four shapes:
 | `headline` | string | yes | The one line at the top of the field. |
 | `from` | string | no | The agent that produced it. |
 | `at` | string | no | When it was produced. |
-| `meta` | string | no | One line under the headline, for example `2,840 words`. |
+| `meta` | string | no | One short fact under the headline, for example `2,840 words`. It gets its own cell rather than being joined to anything. |
 
 By `kind`:
 
 | `kind` | Extra fields |
 |---|---|
-| `direction` | `document`: a markdown string. Rendered by the hand written renderer, which supports h1 to h3, paragraphs, lists, tables, fenced code, blockquotes, bold, italic, inline code and links. Anything else degrades to a paragraph. A table column of hex values gets real swatches. |
+| `direction` | `document`: a markdown string. Rendered by the hand written renderer, which supports h1 to h3, paragraphs, lists including one level of nesting, thematic breaks, tables, fenced code, blockquotes, bold, italic, inline code and links. Anything else degrades to the characters that were written, never to silence. A table is as wide as its widest row, a pipe inside inline code is a character rather than a column boundary, and a column of hex values gets real square swatches. |
 | `build` | `previewUrl`: http or https, embedded in a sandboxed iframe on desktop and offered as a link on a phone. `changed`: an array of strings describing what changed. |
 | `findings` | `findings`: an array of `{ id, severity, text, where }`. `severity` must be `must-fix`, `worth fixing` or `nitpick`. `where` is a path and line, set in the machine face. `to`: who they go back to, default `the builder`. |
 | `question` | `question`: the question text. `note`: an optional second line. `options`: two to four `{ id, label }`. Omit `options` for a free text answer. |
@@ -203,21 +305,121 @@ directory and an `os.replace`, so a reader never sees a partial file. The
 answered project moves from `held` to `ready`, its `ask` becomes `null`, its
 `since` becomes now, and one `decision` entry is appended to its `history`.
 
+## Fonts
+
+Four latin subset woff2 files in `fonts/`, all SIL OFL 1.1, all variable, all
+self hosted. Three voices: the system speaks in one, documents speak in
+another, and machine literals speak in a third.
+
+| File | Family | Axes as shipped | Voice | Size |
+|---|---|---|---|---|
+| `instrument-sans-var-latin.woff2` | Instrument Sans | `wght` 400 to 700, `wdth` 75 to 100 | Interface | 56KB |
+| `newsreader-var-latin.woff2` | Newsreader | `wght` 380 to 700, `opsz` 6 to 72 | Documents | 115KB |
+| `newsreader-italic-var-latin.woff2` | Newsreader italic | `wght` 380 to 620, `opsz` 14 to 22 | Notes, captions, quotes | 99KB |
+| `geist-mono-var-latin.woff2` | Geist Mono | `wght` 400 to 500 | Paths, slugs, hex values, code | 15KB |
+
+285KB in total. Only the first two are preloaded, which is 170KB on the
+critical path. The italic and the mono load lazily and neither is reached by
+the board: the italic is first needed by a rendered direction document, and
+the mono by a path or a hex value inside one.
+
+### Where they came from, and what was changed
+
+All four were fetched from the Google Fonts CSS2 API, latin subset, and are
+unmodified in outline. Three of them were then **instanced** to the axis
+ranges this build actually asks for, using `fontTools.varLib.instancer`:
+
+| File | Original | Instanced to | Result |
+|---|---|---|---|
+| Newsreader italic | 143KB | `wght` 380:620, `opsz` 14:22 | 99KB |
+| Newsreader roman | 129KB | `wght` 380:700 | 115KB |
+| Geist Mono | 23KB | `wght` 400:500 | 15KB |
+
+Nothing the stylesheet can reach was removed. The italic keeps 380 so the
+dark mode weight grade still applies to it, and 620 so an italic inside a
+bold heading still renders at its own weight; it keeps `opsz` 14 through 22
+so optical sizing still works across every size italic appears at. Geist Mono
+is instanced to exactly the two weights the type spec names. Instrument Sans
+was left at full range, because the width axis is the point of that choice
+and narrowing it would save seven kilobytes for a real loss of headroom.
+
+Vertical metrics are identical before and after instancing, which matters
+because each family also declares a metric matched local fallback with
+`size-adjust`, `ascent-override` and `descent-override` so that a font swap
+does not move any row. Those numbers were read out of the `head`, `hhea` and
+`OS/2` tables of the real font files rather than estimated.
+
+Weights are set through `font-variation-settings` on the `wght` axis rather
+than through `font-weight` keywords, so they are continuous and exact, and
+every weight steps down by 20 units in dark mode. Light text on a dark ground
+reads optically heavier, and a variable axis is the honest way to pay for
+that rather than jumping to the next named weight. Because
+`font-variation-settings` inherits, every mono element states its own axis
+value; a `font-weight` declaration on those elements would be ignored.
+
+### Licences
+
+The SIL Open Font Licence requires the licence to travel with redistributed
+fonts, and this repository is public, so it travels here:
+
+| Licence | Family | Upstream |
+|---|---|---|
+| `fonts/OFL-Instrument-Sans.txt` | Instrument Sans | [Instrument/instrument-sans](https://github.com/Instrument/instrument-sans) |
+| `fonts/OFL-Newsreader.txt` | Newsreader, roman and italic | [productiontype/Newsreader](https://github.com/productiontype/Newsreader) |
+| `fonts/OFL-Geist-Mono.txt` | Geist Mono | [vercel/geist-font](https://github.com/vercel/geist-font) |
+
+All three are SIL OFL 1.1. None of the three declares a Reserved Font Name,
+so the instanced files above keep their family names.
+
 ## A note on the size of app.js
 
-`app.js` runs to roughly 1,200 lines, over the 700 line tripwire in amendment
-I. That was reviewed and accepted rather than overlooked. About half the file
-is two things the amendments require outright: the hand written markdown
-renderer, which exists because agent authored text is untrusted and no library
-is allowed, and the four ask shapes, which are four genuinely different
-layouts rather than one layout with a switch in it. The tripwire was there to
-catch over-building, and cutting either of those would mean doing less, not
-building less.
+`app.js` runs to roughly 2146 lines, over the 700 line tripwire in amendment
+I. **This was reviewed and accepted rather than overlooked, twice, and is
+deliberate.** That was reviewed and accepted rather than overlooked. Three things account
+for most of it and none is optional: the hand written markdown renderer, which
+exists because agent authored text is untrusted and no library is allowed; the
+four ask shapes, which are four genuinely different layouts rather than one
+layout with a switch in it; and the flow model and its drawing, which is the
+signature of the tool. The tripwire was there to catch over-building, and
+cutting any of those would mean doing less rather than building less.
+
+## Checking the markdown renderer
+
+```
+node scripts/check-markdown.js
+```
+
+Seventy nine assertions against the renderer, run from the repository root,
+including one pass that renders every direction document in this repository and
+checks that nothing was altered. They
+slice the functions out of the shipping `app.js` rather than copying them, so
+they test what actually ships. Node standard library only, no packages.
+
+They exist because two renderer bugs have shipped and both had the same shape:
+the console silently altering the text of a document it was asking a person to
+approve. The first turned `DESIGN_VARIANCE` into italics. The second split any
+hard wrapped list item into a listitem plus a stray paragraph and restarted the
+next list at one, which fired on essentially every list in this repository,
+because every direction document here is wrapped at about eighty characters.
+A third and a fourth followed: a thematic break was appended to whatever list
+was open, because `---` had no branch of its own, and every nested list was
+flattened to one level while a nested ordered list broke its parent and
+renumbered itself from one. A fifth was quieter and worse: a table row carrying
+more cells than its header had the surplus dropped, and a pipe inside inline
+code split a cell in half.
+
+The assertions cover all of them, plus wrapped ordered items, numbering across
+a blank line, the block types that must end a list, hex swatches, link forms
+that are deliberately not supported, and every scheme `safeHref` has to
+refuse.
 
 ## The other two routes
 
 `GET /api/state` returns the file, 404 when it does not exist, or 500 when it
 exists and will not parse. Both API routes send `Cache-Control: no-store`.
+Static types served include `.html`, `.css`, `.js`, `.json`, `.woff2`, `.svg`
+and `.txt`, the last so the font licences render in a browser rather than
+downloading.
 Everything else is served from this directory only, and a path that resolves
 outside it returns 404.
 
