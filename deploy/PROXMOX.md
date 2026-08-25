@@ -8,24 +8,29 @@ Target: an unprivileged LXC container. Debian 12 and 13 both work. The server is
 a single Python process with no dependencies, so a full VM buys overhead and
 nothing else.
 
-## 1. Decide how the container authenticates to GitHub
+## 1. Nothing to authenticate
 
-The repository is private, so the container needs a credential to clone it.
+The repository is public, so the container clones and pulls anonymously and
+there is no credential on the box at all. That is deliberate: it holds design
+documents, a console and orchestration instructions, and no secrets, so making
+it public removes the credential problem rather than relocating it into a
+backup image.
 
-A fine-grained personal access token scoped to this one repository with
-**Contents: Read** is the right level. The box serves the console and runs the
-pipeline; it does not need to publish. Two things follow from read-only, both
-worth knowing before they surprise you:
+```
+https://github.com/drewnow123/design-agent.git
+```
 
-- A push fails with an error that reads like a bad credential rather than a
-  missing scope. If something genuinely needs to push, widen the token
-  deliberately rather than working around it.
-- Fine-grained tokens expire. A clone that worked in August and fails in
-  November with "Invalid username or token" is an expired token, not a broken
-  repository.
+Two consequences worth knowing before they surprise you:
 
-Keep the token out of `.git/config` and `~/.git-credentials` if this container
-is in a backup job, since both would ride along in the archive.
+- **Run git as the account that owns the tree, never as root.** Root in a tree
+  owned by another user gets `fatal: detected dubious ownership`. Do not take
+  git's suggested `safe.directory` fix, which adds the exception for root and
+  encourages exactly the root-owned files that leave the service account unable
+  to write. Use `runuser -l handoff -s /bin/bash -c '...'` instead.
+- **`runuser -c` has no terminal.** If a pull ever does need a credential it
+  fails with `could not read Username ... No such device or address`, which is
+  about the missing prompt rather than the credential. On a public repo this
+  should never happen.
 
 ## 2. Create the container
 
@@ -84,6 +89,11 @@ nothing outside the standard library.
 adduser --system --group --home /srv/my-design-agent handoff
 ```
 
+```
+git clone https://github.com/drewnow123/design-agent.git /srv/my-design-agent
+chown -R handoff:handoff /srv/my-design-agent
+```
+
 **This makes the repository that account's home directory**, which is
 convenient and has one sharp edge: anything the account writes to `$HOME` lands
 inside the working tree. If you later install Claude Code as this user, its
@@ -102,14 +112,7 @@ git check-ignore -v .claude/launch.json     # must print nothing
 The first should report both as ignored. The second must print nothing at all,
 because that file is meant to be in the repository.
 
-If you pushed in step 1:
-
-```
-git clone https://github.com/drewnow123/andrewhsv-site.git /srv/my-design-agent
-chown -R handoff:handoff /srv/my-design-agent
-```
-
-If you would rather copy the files across, from the Proxmox host:
+If the box has no route to GitHub, copy the files instead, from the Proxmox host:
 
 ```
 pct push 120 /path/to/my-design-agent.tar.gz /tmp/repo.tar.gz
