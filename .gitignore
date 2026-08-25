@@ -20,6 +20,11 @@ __pycache__/
 .local/
 .claude/*
 !.claude/launch.json
+
+# Claude Code writes a file next to that directory as well as inside it, and
+# it is not just noise: .claude.json carries account and project state. It has
+# no business in a repository, public or private.
+.claude.json*
 .cache/
 .config/
 .npm/
