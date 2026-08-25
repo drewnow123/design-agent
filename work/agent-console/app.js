@@ -883,18 +883,72 @@
     var current = model.passes[model.passes.length - 1];
     var returns = model.passes.length - 1;
 
-    // Where the status word will sit. It clears the drawn mark rather than
-    // the point the mark is centred on.
+    /* Where the status word sits.
+     *
+     * One rule, for all five states: the word is right aligned inside the
+     * column its state refers to, a gap in from that column's right edge.
+     * The only exception is a terminus that has reached the end of the
+     * usable track, where there is no column to its right to be confused
+     * with, and the word prints after it.
+     *
+     * The rule this replaces printed the word after the terminus in every
+     * case. For a terminus sitting on a column boundary, which is every
+     * project held or answered before the reviewer, that put the word one
+     * pixel into the next column. For `running`, which has no terminus at
+     * all, it put the word a full column away from the only mark naming it:
+     * a project running its first stage showed a cyan segment inside
+     * design-strategist and the word "running" inside component-builder,
+     * which reads as the opposite of what is true.
+     *
+     * A word may still extend leftward past its column's left edge when the
+     * column is too narrow to hold it. That is safe, because everything to
+     * the left is a column the project has already reached. Nothing may
+     * extend right.
+     */
     var reach = 0;
     if (model.state === "clear") { reach = 3; }
     else if (model.state === "stopped") { reach = 14 / 2 / Math.SQRT2; }
 
-    var wordAt = X(current.to) + reach + WORD_GAP;
+    var wordAt;
+    var segLimit = null;
+    var atTrackEnd = Math.abs(current.to - n) < 0.001;
+
     if (model.state === "running" && model.segCol >= 0) {
-      // Running has no terminus, so the word prints after the column the
-      // segment is travelling in rather than on top of it.
-      wordAt = X(model.segCol + 1) + WORD_GAP;
+      // Right aligned inside the running column. Two pixels rather than a
+      // full gap, because there is no terminus on its right to clear: the
+      // word only has to stay inside the column that is running.
+      wordAt = X(model.segCol + 1) - 2 - opts.wordWidth;
+      // The travelling segment stops where its own label starts, so the two
+      // share the column without the bar sweeping under the letters.
+      segLimit = wordAt - WORD_PAD;
+    } else if (atTrackEnd) {
+      wordAt = X(current.to) + reach + WORD_GAP;
+    } else {
+      // The column the thread reached. A whole numbered position is a
+      // boundary, and the column that owns it is the one on its left.
+      var termCol = (current.to % 1 === 0)
+        ? Math.max(0, current.to - 1)
+        : Math.floor(current.to);
+      var colRight = X(termCol + 1);
+      var tX = X(current.to);
+
+      // After the terminus if the whole word fits inside that column, which
+      // keeps the reading order of mark then label and leaves the thread
+      // behind it untouched. Otherwise before it. Either way the word stays
+      // out of a column the project has not reached.
+      var after = tX + reach + WORD_GAP;
+      wordAt = (after + opts.wordWidth <= colRight)
+        ? after
+        : tX - reach - WORD_GAP - opts.wordWidth;
     }
+
+    // Clamped here rather than by the caller. Clamping after the fact meant
+    // the hole cut in the track and the thread was computed from one
+    // position and the word was painted at another, so at narrow widths the
+    // lines went straight back through the letters they had just made room
+    // for.
+    if (wordAt + opts.wordWidth > width) { wordAt = width - opts.wordWidth; }
+    if (wordAt < 0) { wordAt = 0; }
 
     /* Nothing is drawn behind the status word, ever.
      *
@@ -997,7 +1051,9 @@
       wordY: y,
       gap: gap,
       segX: model.segCol >= 0 ? X(model.segCol) : 0,
-      segW: model.segCol >= 0 ? X(model.segCol + 1) - X(model.segCol) : 0,
+      segW: model.segCol >= 0
+        ? Math.max(0, (segLimit === null ? X(model.segCol + 1) : segLimit) - X(model.segCol))
+        : 0,
       // Flush with the top edge of the thread's pixel row, which is a whole
       // number because y always lands on a half.
       segY: y - 0.5
@@ -1057,19 +1113,10 @@
       }
 
       if (item.word) {
+        // drawFlow decides and clamps this, because it is the same number
+        // the hole in the drawing was cut from.
         item.word.style.setProperty("--word-x", out.wordX);
         item.word.style.setProperty("--word-y", out.wordY);
-        // With the reserve measured above, every word fits after its own
-        // terminus at every width and this never fires. It stays as a last
-        // resort against a status word longer than any that exists today,
-        // because a word running off the right of the board would be worse
-        // than a word sitting slightly early.
-        if (!phone) {
-          var need = item.word.offsetWidth;
-          if (out.wordX + need > w) {
-            item.word.style.setProperty("--word-x", Math.max(0, w - need));
-          }
-        }
       }
     });
   }

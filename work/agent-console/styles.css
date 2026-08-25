@@ -515,7 +515,16 @@ textarea,
     var(--col-time);
   align-items: center;
   column-gap: 0;
-  width: 100%;
+  /* Both grids are the same width, declared once, because they have to
+     divide the same space into the same columns. A button shrink wraps its
+     content even as a grid container, so this cannot be left to width auto;
+     and when only the row carried it, the header's content box was sixteen
+     pixels narrower than the row's and every column label sat about eleven
+     pixels left of the column it named. */
+  width: calc(100% + var(--s2) * 2);
+  margin: 0 calc(-1 * var(--s2));
+  padding-left: var(--s2);
+  padding-right: var(--s2);
   text-align: left;
 }
 
@@ -523,8 +532,7 @@ textarea,
    axis is doing the narrowing here rather than negative letter spacing,
    which is a real designer drawn narrow rather than a squeeze. */
 .fhead {
-  margin: 0 calc(-1 * var(--s2));
-  padding: 0 var(--s2) var(--s2);
+  padding-bottom: var(--s2);
   border-bottom: 1px solid var(--rule);
 }
 
@@ -555,13 +563,6 @@ textarea,
 .frow {
   position: relative;
   min-height: var(--row-h);
-  padding: 0 var(--s2);
-  margin: 0 calc(-1 * var(--s2));
-  /* A button shrink wraps its content even as a grid container, so the
-     width is explicit. The eight pixels either side are what the hover fill
-     bleeds into, and .fhead is inset the same way so the two grids share
-     exactly one set of column edges. */
-  width: calc(100% + var(--s2) * 2);
   cursor: pointer;
   border-radius: var(--r-2);
   background-color: transparent;
@@ -1948,7 +1949,8 @@ textarea.write {
     grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
     row-gap: var(--s0);
     align-items: baseline;
-    padding: var(--s1) var(--s2);
+    padding-top: var(--s1);
+    padding-bottom: var(--s1);
   }
 
   .frow-name {

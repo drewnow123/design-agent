@@ -205,6 +205,23 @@ physically longer than the track. That loss was authorised at review. The
 count carries the fact the drawing was trying to carry, and it carries it
 legibly.
 
+**The status word never leaves the column its state refers to.** It prints
+after the terminus when the whole word fits inside that column, and before it
+when it does not, so the mark and its label stay together and neither strays
+into a column the project has not reached. A word may extend leftward past its
+column edge when the column is too narrow to hold it, because everything to the
+left is ground the project has already covered. `running` has no terminus at
+all, so its word is right aligned inside the running column and the travelling
+segment stops where the word begins. The only exception is a terminus that has
+reached the end of the usable track, where there is no column to the right to
+be confused with, and the word prints after it.
+
+That rule replaced one that printed every word after the terminus. For a
+terminus sitting on a column boundary it put the word one pixel into the next
+column, and for `running` it put the word a whole column away from the only
+mark naming it: a project running its first stage showed the segment inside
+`design-strategist` and the word inside `component-builder`.
+
 **Nothing is ever drawn behind the status word.** A terminus that stops mid
 track, which is every project held or answered before the reviewer, would
 otherwise have the track running straight through its own label, which is not
