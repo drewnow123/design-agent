@@ -4,23 +4,28 @@ Handoff is not a front end you can point at a backend. The page and the API are
 one process that reads and writes the repository working tree, so the
 repository has to live on the box you serve from. These steps put both there.
 
-Target: an unprivileged Debian 12 LXC container. The server is a single Python
-process with no dependencies, so a full VM buys overhead and nothing else.
+Target: an unprivileged LXC container. Debian 12 and 13 both work. The server is
+a single Python process with no dependencies, so a full VM buys overhead and
+nothing else.
 
-## 1. Get the code somewhere the container can reach
+## 1. Decide how the container authenticates to GitHub
 
-**None of the console is committed yet.** A plain `git clone` on the VM would
-give you a repository with no console in it. Commit and push first, or copy the
-files across directly.
+The repository is private, so the container needs a credential to clone it.
 
-```
-git add scripts/ work/agent-console/ work/agent-console-design/ deploy/ CLAUDE.md .gitignore .claude/launch.json
-git commit -m "Add the Handoff console, its CLI, and deployment notes"
-git push origin master
-```
+A fine-grained personal access token scoped to this one repository with
+**Contents: Read** is the right level. The box serves the console and runs the
+pipeline; it does not need to publish. Two things follow from read-only, both
+worth knowing before they surprise you:
 
-The only remote is `andrewhsv-site.git`. If you would rather not put the agent
-tooling in that repository, skip the push and use the copy route in step 4.
+- A push fails with an error that reads like a bad credential rather than a
+  missing scope. If something genuinely needs to push, widen the token
+  deliberately rather than working around it.
+- Fine-grained tokens expire. A clone that worked in August and fails in
+  November with "Invalid username or token" is an expired token, not a broken
+  repository.
+
+Keep the token out of `.git/config` and `~/.git-credentials` if this container
+is in a backup job, since both would ride along in the archive.
 
 ## 2. Create the container
 
@@ -39,7 +44,7 @@ pct create 120 local:vztmpl/debian-12-standard_12.12-1_amd64.tar.zst \
   --hostname handoff \
   --cores 2 --memory 1024 --swap 512 \
   --rootfs local-lvm:8 \
-  --net0 name=eth0,bridge=vmbr0,ip=192.168.1.50/24,gw=192.168.1.1 \
+  --net0 name=eth0,bridge=vmbr0,ip=192.168.1.50/24,gw=192.168.1.254 \
   --unprivileged 1 \
   --onboot 1 \
   --password
@@ -50,6 +55,10 @@ pct enter 120
 
 A static address is worth setting. You will be typing it into a phone, and it
 ends up in a systemd unit.
+
+**Check the gateway rather than copying it.** Plenty of guides assume `.1`, and
+on this network it is `192.168.1.254`. The symptom of getting it wrong is a
+container that builds fine and has no default route.
 
 | Resource | Console only | Console plus the pipeline |
 |---|---|---|
@@ -65,14 +74,33 @@ apt install -y python3 git
 python3 --version        # must be 3.8 or newer
 ```
 
-Debian 12 ships Python 3.11. No pip install, no virtualenv, no requirements
-file: the console and its CLI import nothing outside the standard library.
+Debian 12 ships Python 3.11 and Debian 13 ships 3.13. Either clears the bar. No
+pip install, no virtualenv, no requirements file: the console and its CLI import
+nothing outside the standard library.
 
 ## 4. Put the repository at /srv/my-design-agent
 
 ```
 adduser --system --group --home /srv/my-design-agent handoff
 ```
+
+**This makes the repository that account's home directory**, which is
+convenient and has one sharp edge: anything the account writes to `$HOME` lands
+inside the working tree. If you later install Claude Code as this user, its
+binary goes to `.local/share/claude/` and its session transcripts to
+`.claude/`, both inside the repository.
+
+The shipped `.gitignore` already covers that case, including the negation that
+keeps the tracked `.claude/launch.json` tracked. Confirm it before your first
+`git add -A` rather than after:
+
+```
+git check-ignore -v .local/share/claude/bin .claude/settings.json
+git check-ignore -v .claude/launch.json     # must print nothing
+```
+
+The first should report both as ignored. The second must print nothing at all,
+because that file is meant to be in the repository.
 
 If you pushed in step 1:
 
@@ -117,9 +145,15 @@ systemctl status handoff
 journalctl -u handoff -f
 ```
 
-**If it fails with status `226/NAMESPACE`** inside an unprivileged container,
-that is sandboxing the container will not grant. Comment out these three lines,
-reload, start again. You lose defence in depth, not function:
+**The hardening usually works.** On PVE 9.2 with a Debian 13 unprivileged
+container, all of it is granted, including `ProtectSystem=strict`. Do not
+pre-emptively comment anything out: `ReadWritePaths=/srv/my-design-agent/.handoff`
+means the service can write that directory and nothing else, and it is the only
+containment the console has.
+
+**Only if it fails with status `226/NAMESPACE`** is the container refusing the
+sandboxing. In that case comment out these three lines, reload, start again.
+You lose defence in depth, not function:
 
 ```
 # ProtectSystem=strict
@@ -127,7 +161,11 @@ reload, start again. You lose defence in depth, not function:
 # MemoryDenyWriteExecute=yes
 ```
 
-Keep `NoNewPrivileges`, `ProtectHome` and `RestrictAddressFamilies`.
+Keep `NoNewPrivileges`, `ProtectHome` and `RestrictAddressFamilies` regardless.
+
+If you do change the unit, change `deploy/handoff.service` in the repository and
+copy it out again. An installed unit that has drifted from the repository copy
+is a trap for whoever reads the repository next and believes it.
 
 ## 7. Check it
 
@@ -171,6 +209,14 @@ ExecStart=/usr/bin/python3 scripts/console.py --allow-host handoff.lan --allow-h
 The match is exact rather than a suffix, so allowing `handoff.lan` does not
 admit `handoff.lan.somewhere-else.com`.
 
+`--allow-host` only tells the console to accept a name. It does not create one.
+Until a DNS record for `handoff.lan` exists, the flag sits there doing nothing
+and the name does not resolve. The record belongs wherever this network answers
+DNS, which for a home setup is usually the resolver itself rather than anything
+on this box. Reaching the console by bare IP always passes the check with no
+configuration at all, which is why it is the fastest way to tell a DNS problem
+apart from a `Host` problem.
+
 Behind a proxy with TLS, bind to loopback so the only route in is the proxy:
 
 ```
@@ -189,9 +235,17 @@ On the same network, nothing more is needed. Triage and question asks are built
 to be cleared from a phone, and the build review deliberately refuses to embed a
 desktop layout in a 375px viewport.
 
-From outside, use a tailnet rather than forwarding a port. In an unprivileged
-container Tailscale needs the TUN device passed in. On the **Proxmox host**, add
-to `/etc/pve/lxc/120.conf`:
+From outside, use a tailnet rather than forwarding a port.
+
+**Check whether something on the network already advertises this subnet before
+installing anything here.** If another machine is a Tailscale subnet router for
+`192.168.1.0/24`, the console's LAN address is already reachable from anywhere
+and there is nothing to do on this box. That is the better arrangement: it
+avoids passing a device into the container at all.
+
+Only if you have no subnet router does Tailscale go here, and in an unprivileged
+container it needs the TUN device passed in. On the **Proxmox host**, add to
+`/etc/pve/lxc/120.conf`:
 
 ```
 lxc.cgroup2.devices.allow: c 10:200 rwm

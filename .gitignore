@@ -7,3 +7,24 @@ __pycache__/
 # Local env / secrets
 .dev.vars
 .env
+
+# On a server the service account is often created with the repository as its
+# home directory, which puts that account's whole HOME inside the working tree:
+# the Claude Code binary, its session transcripts, shell history, caches. A
+# `git add -A` there sweeps a ~100 MB binary and a record of every session into
+# the repository. None of it is source.
+#
+# .claude/ is written as .claude/* deliberately. A bare directory pattern stops
+# git descending into the directory, which makes the negation below silently
+# ineffective and untracks a file that is meant to be tracked.
+.local/
+.claude/*
+!.claude/launch.json
+.cache/
+.config/
+.npm/
+.ssh/
+.bashrc
+.bash_history
+.bash_logout
+.profile
