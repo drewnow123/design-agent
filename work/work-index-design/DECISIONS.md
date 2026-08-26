@@ -79,3 +79,63 @@ is only truthful if it is written as you go.
 The two open questions in `DIRECTION.md` section 11 were not answered and the
 strategist's own choices stand: the title is **Builds**, and the gloss keeps its
 link to `127.0.0.1:8790` alongside the `agent-console/` entry.
+
+---
+
+## Amendment C: there is no reduced-motion block, and that is the correct build
+
+Review finding 6, resolved 2026-08-26.
+
+**The direction contradicted itself.** Section 7 states that under
+`prefers-reduced-motion: reduce` both behaviors are kept, then asserts in the
+next breath that "the reduced-motion block on this page is one substitution and
+not a no-op", and section 10 item 13 asks a checker to confirm that block
+"substitutes something real". Those cannot all be true at once. If both
+behaviors survive the query, the block has nothing to change, and a block that
+changes nothing is precisely the dead code section 7 spends its last sentence
+banning.
+
+**The build was right and the direction was wrong.** `component-builder`
+shipped no block and said so rather than manufacturing a substitution to
+satisfy a checklist. That was the correct call and it is now the specification.
+
+Measured against the shipped page before ruling, so this is settled on evidence
+rather than on the argument alone:
+
+| | count |
+|---|---|
+| `@keyframes`, `animation`, `transform`, `translate`, `scale(`, `will-change` | 0 each |
+| `scroll-behavior` | 0 |
+| transitions declared | 2, `background-color` and `outline-color` |
+
+Nothing on this page moves. Both transitions are colour, both at `--t-quick`,
+and `DIRECTION-3` section 4.6 point 6 permits colour transitions up to 140ms
+under reduced motion, because reduced motion means reduced movement. So the
+honest response to the query is to change nothing, and the honest way to
+express that is to write nothing.
+
+### What changes
+
+- **Section 7's last paragraph is superseded.** Its reasoning is kept and its
+  conclusion is inverted: because both behaviors are permitted to survive, no
+  block is written. Its warning against shipping `transition: none !important`
+  over a stylesheet with nothing to disable stands, and is now the rule rather
+  than an aside.
+- **Section 10 item 13 is inverted.** It no longer asks whether a block exists
+  and substitutes something real. It asks the opposite: that no
+  `prefers-reduced-motion` block is present *while* nothing on the page moves.
+  `audit()` enforces it.
+
+### The condition under which this expires
+
+This ruling is contingent, not permanent, and the check encodes the condition
+rather than the conclusion. **If anything on this page ever moves** — a
+keyframe, a transform, a scroll behavior, a transition on a property that
+changes geometry — then a reduced-motion block becomes required and its absence
+becomes a defect. `audit()` fails in that case rather than silently continuing
+to bless an absence that was only ever correct for a page made entirely of
+colour.
+
+That is the difference between recording a decision and recording the reason
+for it. A checklist item that says "no block" would be wrong the first time
+someone adds an animation, and nobody re-reads a passing check.

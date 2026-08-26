@@ -1571,6 +1571,48 @@ def audit(page: str) -> list:
         if ord(ch) > 0x2100 and ch not in "‘’“”":
             bad.append(f"a character outside the page's repertoire: {ch!r}")
 
+    # Section 10 item 13, as inverted by DECISIONS amendment C.
+    #
+    # The direction asked for a prefers-reduced-motion block that "substitutes
+    # something real" while also ruling that both of this page's transitions
+    # survive the query. Both cannot hold: if nothing changes under the query,
+    # the block is the dead code section 7 bans in its own last sentence.
+    #
+    # So the check tests the condition rather than the conclusion. While
+    # nothing on this page moves, no block is the correct build and a block is
+    # the defect. The moment something does move, that flips, and the absence
+    # this ruling blessed becomes a real accessibility failure. Encoding the
+    # reason rather than the answer is what stops this expiring silently:
+    # nobody re-reads a check that passes.
+    moves = [
+        needle for needle in
+        ("@keyframes", "animation:", "transform:", "translate(", "scale(",
+         "rotate(", "scroll-behavior")
+        if needle in rules
+    ]
+    # A transition on a property that changes geometry moves, even though the
+    # two colour transitions this page ships do not.
+    for prop in re.findall(r"transition:\s*([^;{}]+)", rules):
+        for part in prop.split(","):
+            name = part.strip().split(" ")[0]
+            if name and name not in ("background-color", "outline-color",
+                                     "color", "border-color", "opacity", "none"):
+                moves.append(f"transition on {name}")
+
+    has_block = "prefers-reduced-motion" in rules
+    if moves and not has_block:
+        bad.append(
+            "this page now moves (" + ", ".join(sorted(set(moves))) +
+            ") and has no prefers-reduced-motion block. DECISIONS amendment C "
+            "permitted the absence only while nothing moved."
+        )
+    if has_block and not moves:
+        bad.append(
+            "a prefers-reduced-motion block over a page where nothing moves. "
+            "That is the dead code DIRECTION section 7 bans and tool-library "
+            "shipped."
+        )
+
     return bad
 
 
