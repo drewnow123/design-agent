@@ -434,8 +434,21 @@ h1 {
    right and the dim directory prefixes trail ragged to the left of them, which
    reads correctly and keeps every path complete. */
 .path {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  /* Shrinkable and wrappable, per DECISIONS amendment D.
+     A path that cannot fit its row used to push the page sideways, because
+     this was `flex: 0 0 auto` with `white-space: nowrap` and the direction
+     forbids truncating a path. Two approved rules, both load bearing, and a
+     long enough filename made them contradict.
+     Wrapping resolves it without breaking either: the string stays whole and
+     copy-pasteable, so it is not truncated, and the page stays still. Only
+     the incidental property gives way, and only for a path that could not
+     have fitted anyway. min-width: 0 is what actually permits the shrink;
+     a flex item refuses to go below its content width without it. */
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 18px;
@@ -617,7 +630,7 @@ h1 {
   <a class="row row-head" href="index.html" aria-label="This page, index.html" aria-current="page">
     <span class="name">This page</span>
     <span class="leader" aria-hidden="true"></span>
-    <span class="path">index.html</span>
+    <span class="path">index.<wbr>html</span>
   </a>
   <p class="gloss">The register you are reading. Its brief was to replace the server&#x27;s own directory listing, which named six directories and said what none of them were.</p>
   <ul class="docs">
@@ -625,14 +638,14 @@ h1 {
       <a class="row row-doc" href="work-index-design/DIRECTION.md" aria-label="Direction, work-index-design/DIRECTION.md">
         <span class="name">Direction</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">work-index-design/</span>DIRECTION.md</span>
+        <span class="path"><span class="dir">work-<wbr>index-<wbr>design/<wbr></span>DIRECTION.<wbr>md</span>
       </a>
     </li>
     <li>
       <a class="row row-doc" href="work-index-design/DECISIONS.md" aria-label="Amendments A and B, work-index-design/DECISIONS.md">
         <span class="name">Amendments A and B</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">work-index-design/</span>DECISIONS.md</span>
+        <span class="path"><span class="dir">work-<wbr>index-<wbr>design/<wbr></span>DECISIONS.<wbr>md</span>
       </a>
     </li>
     <li>
@@ -640,7 +653,7 @@ h1 {
         <span class="name">Findings</span>
         <span class="count">24 items</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">work-index-design/</span>FINDINGS.json</span>
+        <span class="path"><span class="dir">work-<wbr>index-<wbr>design/<wbr></span>FINDINGS.<wbr>json</span>
       </a>
     </li>
   </ul>
@@ -649,7 +662,7 @@ h1 {
   <a class="row row-head" href="tool-library/" aria-label="Fifth Street Tool Library, tool-library/">
     <span class="name">Fifth Street Tool Library</span>
     <span class="leader" aria-hidden="true"></span>
-    <span class="path">tool-library/</span>
+    <span class="path">tool-<wbr>library/</span>
   </a>
   <p class="gloss">A one page site for a neighborhood tool lending library. Built to give the console a real brief to carry, and it went through all three stages.</p>
   <ul class="docs">
@@ -657,7 +670,7 @@ h1 {
       <a class="row row-doc" href="tool-library-design/DIRECTION.md" aria-label="Direction, tool-library-design/DIRECTION.md">
         <span class="name">Direction</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">tool-library-design/</span>DIRECTION.md</span>
+        <span class="path"><span class="dir">tool-<wbr>library-<wbr>design/<wbr></span>DIRECTION.<wbr>md</span>
       </a>
     </li>
     <li>
@@ -665,7 +678,7 @@ h1 {
         <span class="name">Findings</span>
         <span class="count">10 items</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">tool-library-design/</span>FINDINGS.json</span>
+        <span class="path"><span class="dir">tool-<wbr>library-<wbr>design/<wbr></span>FINDINGS.<wbr>json</span>
       </a>
     </li>
   </ul>
@@ -674,7 +687,7 @@ h1 {
   <a class="row row-head" href="agent-console/" aria-label="Front End Agents, agent-console/">
     <span class="name">Front End Agents</span>
     <span class="leader" aria-hidden="true"></span>
-    <span class="path">agent-console/</span>
+    <span class="path">agent-<wbr>console/</span>
   </a>
   <p class="gloss">The console this pipeline reports into. It reads the pipeline&#x27;s state file and writes your answers back. Opened from here it has no server behind it, so it shows sample data.</p>
   <ul class="docs">
@@ -682,35 +695,35 @@ h1 {
       <a class="row row-doc" href="agent-console-design/DIRECTION.md" aria-label="Direction, agent-console-design/DIRECTION.md">
         <span class="name">Direction</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">agent-console-design/</span>DIRECTION.md</span>
+        <span class="path"><span class="dir">agent-<wbr>console-<wbr>design/<wbr></span>DIRECTION.<wbr>md</span>
       </a>
     </li>
     <li>
       <a class="row row-doc" href="agent-console-design/DIRECTION-2.md" aria-label="The flow, agent-console-design/DIRECTION-2.md">
         <span class="name">The flow</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">agent-console-design/</span>DIRECTION-2.md</span>
+        <span class="path"><span class="dir">agent-<wbr>console-<wbr>design/<wbr></span>DIRECTION-<wbr>2.<wbr>md</span>
       </a>
     </li>
     <li>
       <a class="row row-doc" href="agent-console-design/DIRECTION-3.md" aria-label="The visual language, agent-console-design/DIRECTION-3.md">
         <span class="name">The visual language</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">agent-console-design/</span>DIRECTION-3.md</span>
+        <span class="path"><span class="dir">agent-<wbr>console-<wbr>design/<wbr></span>DIRECTION-<wbr>3.<wbr>md</span>
       </a>
     </li>
     <li>
       <a class="row row-doc" href="agent-console-design/DECISIONS.md" aria-label="Amendments A to I, agent-console-design/DECISIONS.md">
         <span class="name">Amendments A to I</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">agent-console-design/</span>DECISIONS.md</span>
+        <span class="path"><span class="dir">agent-<wbr>console-<wbr>design/<wbr></span>DECISIONS.<wbr>md</span>
       </a>
     </li>
     <li>
       <a class="row row-doc" href="agent-console-design/DECISIONS-2.md" aria-label="Decisions, the rebuild, agent-console-design/DECISIONS-2.md">
         <span class="name">Decisions, the rebuild</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path"><span class="dir">agent-console-design/</span>DECISIONS-2.md</span>
+        <span class="path"><span class="dir">agent-<wbr>console-<wbr>design/<wbr></span>DECISIONS-<wbr>2.<wbr>md</span>
       </a>
     </li>
     <li>
@@ -718,7 +731,7 @@ h1 {
         <span class="name">Drawing checks</span>
         <span class="clause">loads the console at five widths and measures what it drew</span>
         <span class="leader" aria-hidden="true"></span>
-        <span class="path">agent-console-check/</span>
+        <span class="path">agent-<wbr>console-<wbr>check/</span>
       </a>
     </li>
   </ul>

@@ -963,8 +963,21 @@ h1 {
    right and the dim directory prefixes trail ragged to the left of them, which
    reads correctly and keeps every path complete. */
 .path {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  /* Shrinkable and wrappable, per DECISIONS amendment D.
+     A path that cannot fit its row used to push the page sideways, because
+     this was `flex: 0 0 auto` with `white-space: nowrap` and the direction
+     forbids truncating a path. Two approved rules, both load bearing, and a
+     long enough filename made them contradict.
+     Wrapping resolves it without breaking either: the string stays whole and
+     copy-pasteable, so it is not truncated, and the page stays still. Only
+     the incidental property gives way, and only for a path that could not
+     have fitted anyway. min-width: 0 is what actually permits the shrink;
+     a flex item refuses to go below its content width without it. */
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 18px;
@@ -1277,8 +1290,27 @@ def split_path(rel: str) -> str:
         # that segment is: a thing you open rather than a thing you read. A
         # directory inside a directory used to lose its own name into the dim
         # prefix and render with nothing in the reading tone at all.
-        return f'<span class="dir">{html.escape(head)}/</span>{html.escape(tail)}{slash}'
-    return html.escape(rel)
+        return (f'<span class="dir">{breakable(head)}/<wbr></span>'
+                f'{breakable(tail)}{slash}')
+    return breakable(rel)
+
+
+def breakable(text: str) -> str:
+    """Escape a path and mark where it may break.
+
+    `overflow-wrap: anywhere` on its own would break a long path mid-word, so
+    `agent-console-design` could split as `agent-cons` / `ole-design`. A reader
+    scanning a locator column needs the segment boundaries to survive, so a
+    <wbr> after each separator gives the line breaker somewhere better to go
+    first. It still falls back to breaking anywhere when a single segment is
+    itself longer than the row, which is the only case where there is no good
+    answer.
+
+    <wbr> is a zero-width break opportunity and contributes no character, so a
+    wrapped path still copies as the path. That matters more than the wrapping
+    does: section 4.3 requires these to be copy-pasteable.
+    """
+    return html.escape(text).replace("-", "-<wbr>").replace(".", ".<wbr>")
 
 
 def row(kind: str, href: str, name: str, rel: str, count=None, clause=None,

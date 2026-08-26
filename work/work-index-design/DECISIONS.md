@@ -139,3 +139,67 @@ colour.
 That is the difference between recording a decision and recording the reason
 for it. A checklist item that says "no block" would be wrong the first time
 someone adds an animation, and nobody re-reads a passing check.
+
+---
+
+## Amendment D: a path wraps rather than pushing the page sideways
+
+Found by `component-builder` during the fix pass, outside the review. Resolved
+2026-08-26.
+
+**Two approved rules contradicted each other.** Section 4.3 says a path is
+"one string, never truncated, always copy-pasteable". Section 4.5 says
+"nothing scrolls sideways, and nothing is hidden". A path longer than its row
+cannot satisfy both, and `.path` was `flex: 0 0 auto` with
+`white-space: nowrap`, so the page lost.
+
+Measured with a synthetic 81-character filename before ruling:
+
+| viewport | sideways scroll, before | after |
+|---|---|---|
+| 768px | 127px | 0 |
+| 700px | 180px | 0 |
+| 640px | 240px | 0 |
+| 600px | 0 | 0 |
+
+600px was already clean because the narrow block below 620px had the right
+treatment all along. The defect lived only in the wide layout, which is why
+nobody found it by testing the breakpoint.
+
+### The ruling
+
+**The path wraps.** It keeps its own right-hand column and simply takes more
+than one line when a line will not hold it.
+
+That satisfies both rules rather than choosing between them. Wrapping is not
+truncating: every character is still there and still copies. Nothing is
+hidden, and the page stays still. What gives way is the path being one
+unbroken line, which the direction never actually promises. It is a property
+the design had by accident because no path had yet been long enough to
+question it.
+
+Rejected alternatives:
+
+- **Truncate with an ellipsis, full path in a `title`.** Violates section 4.3
+  outright, and a locator you cannot copy is not a locator.
+- **Scroll the row rather than the page.** A horizontally scrolling row on a
+  contents page is a worse object than a wrapped line, and it hides content
+  behind a gesture, which section 4.5 also forbids.
+- **Shrink the type until it fits.** Two paths at different sizes in one column
+  stop being a column.
+
+### How it breaks
+
+`overflow-wrap: anywhere` alone would break mid-segment, so
+`agent-console-design` could split as `agent-cons` / `ole-design`. The
+generator emits `<wbr>` after each separator, giving the line breaker somewhere
+better to go first, and falls back to breaking anywhere only when one segment
+is itself longer than the row. `<wbr>` is zero-width and contributes no
+character, so a wrapped path still copies as the path.
+
+### What was checked afterwards
+
+The flush right column is the page's signature and a wrapping path could have
+destroyed it. Measured at 1000px with the long path present: **all fifteen
+paths share a single right edge**, and only the over-long one occupies more
+than one line. The fix is inert for every path that fits.
