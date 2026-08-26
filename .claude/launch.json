@@ -4,7 +4,7 @@
     {
       "name": "static-preview",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8788", "--directory", "work"],
+      "runtimeArgs": ["scripts/preview.py", "--port", "8788"],
       "port": 8788
     },
     {

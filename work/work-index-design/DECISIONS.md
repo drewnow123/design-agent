@@ -259,3 +259,72 @@ directions were exercised.
 This is the same shape as amendment C: the reviewer found this by reading, and
 reading is exactly what is unreliable about an unreferenced byte. A set
 difference is not.
+
+---
+
+## Amendment F: this repository decides its content types
+
+Review finding 11, resolved 2026-08-26.
+
+The reviewer flagged, without being able to test it, that the seven `.md` rows
+might download rather than open because `python -m http.server` would serve
+them as `application/octet-stream`. **The premise was wrong and the worry was
+right**, which is an unusual and useful combination.
+
+Measured in Chrome against the running server:
+
+| | |
+|---|---|
+| `Content-Type` sent | `text/markdown` |
+| Chrome's behaviour | renders inline, as text |
+| `document.contentType` | `text/markdown` |
+
+So nothing downloads, and no defect existed on this machine.
+
+### Why it was still worth fixing
+
+`http.server` does not know what a `.md` file is. It asks the host: the Python
+version's built-in table, plus the Windows registry or `/etc/mime.types`. On
+this machine Python 3.14 has `.md` in `mimetypes.types_map`, so it works.
+
+That is a property of the machine, not of this repository. Confirmed by
+serving a file with an extension no database knows:
+
+```
+.unknownext -> application/octet-stream
+```
+
+Which a browser downloads. So on a Python whose table lacks `.md`, seven of
+fourteen rows silently stop opening and start saving. **The register's main
+verb would be environment dependent**, and the failure would look like a
+working link to whoever shipped it.
+
+### The fix
+
+`scripts/preview.py` replaces `python -m http.server` in the `static-preview`
+launch config, and pins every content type this tree serves. `guess_type` is
+overridden rather than `extensions_map` being updated, because how
+`http.server` consults that map has changed across releases and the entire
+point is to stop depending on the release.
+
+`scripts/console.py` already made this decision, serving `.txt` explicitly so
+the font licences render in a browser rather than downloading. This is that
+decision applied to the preview tree, and the two servers now agree.
+
+Two things came free and are worth naming: every text type carries
+`charset=utf-8`, without which a document containing a curly quote renders as
+mojibake under someone else's locale default; and the preview sends
+`Cache-Control: no-store`, because a preview server showing the edit before
+last is worse than one that is down.
+
+### A note on measuring
+
+The first measurement after this change reported 147px of sideways overflow and
+looked like a regression in amendment D. It was not. The browser pane's
+viewport was **zero pixels wide**, and against a zero-width viewport every
+element overflows. Re-measured at 1000, 768 and 375: overflow 0 at each, and
+all fourteen paths still share one right edge.
+
+Worth writing down because the artifact is convincing. A measurement taken
+through this pane should be discarded unless it also reports the viewport width
+it was taken at.
