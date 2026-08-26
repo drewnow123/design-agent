@@ -1,0 +1,122 @@
+[
+  {
+    "severity": "must-fix",
+    "text": "discover() only looks at files one level deep inside a `-design` directory, so any subdirectory placed there is dropped from the page with no note printed, which is the silent-drop that Amendment A calls non-negotiable and that this page exists to fix.",
+    "where": "scripts/build-index.py:235"
+  },
+  {
+    "severity": "must-fix",
+    "text": "Between roughly 621px and 790px the row content (name + clause + leader + path) exceeds the available width, so the path wraps to a second line while the leader stays on the first and runs to the right margin ending in nothing, the exact appearance section 4.5 calls a bug, visible at 768px on the 'Drawing checks' row.",
+    "where": "work/index.html:364"
+  },
+  {
+    "severity": "must-fix",
+    "text": "href values are passed through html.escape but never URL-encoded, so a discovered filename containing #, ?, % or a space yields a link that silently points at the wrong thing or nothing at all, on a page whose entire job is being right about paths. Confirmed: urllib.parse.quote appears nowhere in the generator.",
+    "where": "scripts/build-index.py:917"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "A misspelled or unknown key in index.json ('gloss', 'clause', 'name', 'attachments') is silently ignored, so a typo makes a sentence disappear from a generated page nobody re-reads, while the mirror-image mistake of naming a file that does not exist is a hard error.",
+    "where": "scripts/build-index.py:339"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "A FINDINGS file that is not a JSON array aborts the entire regeneration, so one malformed reviewer output (an agent-written file) leaves the whole index stale and silently wrong rather than costing one decorative count.",
+    "where": "scripts/build-index.py:191"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "The page ships no prefers-reduced-motion block, so pre-flight item 13 is unmet and audit() does not check for it. The builder argued section 7 contradicts itself by requiring a block while specifying that both animations survive it. Either the block is missing or the direction needs an amendment; right now neither is recorded.",
+    "where": "work/index.html:493"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "Only `.lede a` is styled, but inline() allows links inside a gloss too and index.json's own header advertises the form, so the first gloss link will render as a default blue underlined browser link, the anti-reference section 8 names by name.",
+    "where": "scripts/build-index.py:599"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "Files sitting loose directly under work/ (anything not a directory) are invisible to discover() and generate no note, so the page can claim to be written from the directories under work/ while omitting what is actually there.",
+    "where": "scripts/build-index.py:204"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "Ordering is keyed on filesystem mtime, which no git clone or checkout preserves, so on a fresh clone 'most recently written first' becomes arbitrary and --check reports a page that is out of date purely because the disk was re-stamped.",
+    "where": "scripts/build-index.py:255"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "Amendment B says CLAUDE.md gains one line inside 'Keep the console current', explicitly rather than a new section, but an 18-line 'Keep the index current too' section was added instead. This one is the orchestrator's edit, not the builder's.",
+    "where": "CLAUDE.md:109"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "Seven of the ten rows link to .md files. Corrected from the reviewer's original: python -m http.server serves these as text/markdown, not application/octet-stream as reported, so the premise of a forced download is false. Whether Chrome renders text/markdown inline or downloads it is browser-dependent and still unverified.",
+    "where": "work/index.html:364"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "The narrow-width block gives every row a 48px minimum target but leaves the two theme buttons at roughly 30x26px, the smallest touch targets on the page and the only controls that are not links.",
+    "where": "work/index.html:477"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "Chrome's accessibility tree exposes the page's <header> as a banner landmark nested inside <main>, which is an invalid landmark arrangement; measured in the rendered page, not inferred from the source.",
+    "where": "work/index.html:518"
+  },
+  {
+    "severity": "nitpick",
+    "text": "GENERATOR reads the script's filename off __file__ so a rename cannot make the page lie, then hardcodes the 'scripts/' prefix, so a move can. Resolve it relative to ROOT instead.",
+    "where": "scripts/build-index.py:62"
+  },
+  {
+    "severity": "nitpick",
+    "text": "--check reports 'N directories not in index.json' but notes also accumulate one line per undescribed file, so the number is mislabelled and overstates how many directories are unwritten.",
+    "where": "scripts/build-index.py:1141"
+  },
+  {
+    "severity": "nitpick",
+    "text": "audit() counts substrings across the whole file including CSS comments, so a future comment mentioning border-radius would consume the single allowance and let a real second radius through undetected.",
+    "where": "scripts/build-index.py:1076"
+  },
+  {
+    "severity": "nitpick",
+    "text": "visible_text() strips whole tags including their attributes, so every aria-label escapes the em-dash, emoji and space-before-punctuation checks despite being a string a screen reader user reads.",
+    "where": "scripts/build-index.py:1057"
+  },
+  {
+    "severity": "nitpick",
+    "text": "The self-referential row carries aria-current=\"page\" but has no visual counterpart, so screen reader users are told which row is the page they are on and sighted users are not.",
+    "where": "work/index.html:525"
+  },
+  {
+    "severity": "nitpick",
+    "text": "The theme control is one-way. Once clicked there is no route back to the OS preference, and there is no storage or matchMedia listener, so a theme changed in the console tab does not reach this page until a reload.",
+    "where": "work/index.html:643"
+  },
+  {
+    "severity": "nitpick",
+    "text": "With JavaScript disabled the hardcoded data-theme=\"dark\" overrides a light OS preference and both theme buttons render as live controls that do nothing.",
+    "where": "work/index.html:2"
+  },
+  {
+    "severity": "nitpick",
+    "text": "work-index's ordering timestamp excludes index.html by design and build-index.py by accident (it lives outside work/), so the project being actively worked on sinks down a list ordered by recency of work.",
+    "where": "scripts/build-index.py:246"
+  },
+  {
+    "severity": "nitpick",
+    "text": "The lede says 'one directory per brief' while the first entry's locator is index.html, a file. True of two of the three entries, and the one exception is the entry describing the page itself.",
+    "where": "work/index.json:21"
+  },
+  {
+    "severity": "nitpick",
+    "text": ".themebtn uses a 2px horizontal pad, the only off-scale spacing value on a page that otherwise holds to the console's six steps.",
+    "where": "work/index.html:425"
+  },
+  {
+    "severity": "nitpick",
+    "text": "newsreader-italic-var-latin.woff2 (99KB) was copied into work/fonts/ although the direction says not to load it and nothing on the page is italic. The italic @font-face is correct as a verbatim copy, but the file itself is dead weight in the served tree.",
+    "where": "work/fonts/newsreader-italic-var-latin.woff2"
+  }
+]
