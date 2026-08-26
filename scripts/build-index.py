@@ -591,7 +591,8 @@ CSS = """
    page is naming it; every path is Geist Mono because a path is a literal.
    That is the whole taxonomy, and it is why no icon is needed or allowed.
 
-   The italic is not loaded. Nothing on this page is set in it. */
+   There is no italic. Nothing on this page is set in one, and inline() cannot
+   produce one, so the face is not served either. */
 
 @font-face {
   font-family: "Instrument Sans";
@@ -641,15 +642,8 @@ CSS = """
   line-gap-override: 0%;
 }
 
-@font-face {
-  font-family: "Newsreader Fallback";
-  src: local("Georgia Italic"), local("Times New Roman Italic");
-  font-style: italic;
-  size-adjust: 88.49%;
-  ascent-override: 83.06%;
-  descent-override: 29.95%;
-  line-gap-override: 0%;
-}
+/* No italic fallback, because no italic face is served. DECISIONS amendment E
+   has the argument; check_fonts() enforces it. */
 
 @font-face {
   font-family: "Geist Fallback";
@@ -1540,6 +1534,34 @@ def paths_resolve(page: str) -> list:
     return bad
 
 
+def check_fonts(page: str) -> list:
+    """Every font in the served tree is reachable, and every font asked for is
+    there.
+
+    This exists because the opposite went unnoticed through a build and a
+    review: 99KB of Newsreader italic sat in work/fonts/ that no rule could
+    reach, because the direction said copy four faces in one sentence and said
+    the italic is not loaded in the next. A reviewer caught it by reading. A
+    served byte nobody can request is the kind of thing reading is bad at and
+    a set difference is good at.
+
+    It runs in both directions on purpose. An unreferenced font is dead weight;
+    a referenced font that is missing is a face that silently falls back, which
+    is worse and much harder to see.
+    """
+    bad = []
+    fonts = WORK / "fonts"
+    if not fonts.is_dir():
+        return bad
+    on_disk = {p.name for p in fonts.iterdir() if p.suffix == ".woff2"}
+    asked = set(re.findall(r"fonts/([A-Za-z0-9._-]+\.woff2)", page))
+    for name in sorted(on_disk - asked):
+        bad.append(f"fonts/{name} is served but the page never asks for it")
+    for name in sorted(asked - on_disk):
+        bad.append(f"the page asks for fonts/{name} and it is not there")
+    return bad
+
+
 def audit(page: str) -> list:
     """Section 10 of the direction, run rather than asserted.
 
@@ -1644,6 +1666,8 @@ def audit(page: str) -> list:
             "That is the dead code DIRECTION section 7 bans and tool-library "
             "shipped."
         )
+
+    bad.extend(check_fonts(page))
 
     return bad
 

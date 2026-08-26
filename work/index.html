@@ -34,7 +34,8 @@
    page is naming it; every path is Geist Mono because a path is a literal.
    That is the whole taxonomy, and it is why no icon is needed or allowed.
 
-   The italic is not loaded. Nothing on this page is set in it. */
+   There is no italic. Nothing on this page is set in one, and inline() cannot
+   produce one, so the face is not served either. */
 
 @font-face {
   font-family: "Instrument Sans";
@@ -84,15 +85,8 @@
   line-gap-override: 0%;
 }
 
-@font-face {
-  font-family: "Newsreader Fallback";
-  src: local("Georgia Italic"), local("Times New Roman Italic");
-  font-style: italic;
-  size-adjust: 88.49%;
-  ascent-override: 83.06%;
-  descent-override: 29.95%;
-  line-gap-override: 0%;
-}
+/* No italic fallback, because no italic face is served. DECISIONS amendment E
+   has the argument; check_fonts() enforces it. */
 
 @font-face {
   font-family: "Geist Fallback";

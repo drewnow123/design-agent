@@ -203,3 +203,59 @@ The flush right column is the page's signature and a wrapping path could have
 destroyed it. Measured at 1000px with the long path present: **all fifteen
 paths share a single right edge**, and only the over-long one occupies more
 than one line. The fix is inert for every path that fits.
+
+---
+
+## Amendment E: no italic is served, and a set difference now says so
+
+Review finding 24, resolved 2026-08-26.
+
+**The direction asked for two things that could not both be honoured.** Section
+3 says to copy four woff2 files into `work/fonts/`, and the table in the same
+section says of Newsreader italic: "Not used. Do not load it." The build did
+both, correctly and literally: it copied the file and never referenced it. The
+result was 99KB of the 291KB served tree that nothing on the page could reach.
+
+Checked before deleting, because a font that looks dead and is not is a worse
+outcome than one that is:
+
+- `inline()` renders exactly two forms, a code literal and a link. **There is no
+  emphasis syntax**, so no string anyone writes in `index.json` can produce an
+  `<em>`.
+- `newsreader-italic-var-latin.woff2` appears zero times in the generated page.
+
+So the face was unreachable in both directions: nothing referenced it, and
+nothing could come to.
+
+### What was removed
+
+- `work/fonts/newsreader-italic-var-latin.woff2`, 101,388 bytes. The served
+  font payload falls from 291,388 to 190,712 bytes, a third of it gone.
+- The italic `Newsreader Fallback` `@font-face` block, which declared a metric
+  matched local fallback for a face that was never requested.
+
+`OFL-Newsreader.txt` **stays**. Newsreader roman still ships and travels under
+that same licence, so removing it would be the actual licence problem.
+
+Section 3's instruction to copy the fallback blocks verbatim stands for the
+three faces that remain. Verbatim was the right instruction: it stopped the
+builder re-deriving twelve metric override numbers by hand, and the block for
+a face nobody serves was a cheap price for that until someone counted it.
+
+### The check
+
+`check_fonts()` compares what is in `work/fonts/` against what the page asks
+for, in both directions, and it fires on either mismatch.
+
+- A font served but never requested is dead weight.
+- A font requested but not served is a face that silently falls back, which is
+  worse, because a page that quietly renders in Georgia looks fine to whoever
+  ships it.
+
+It was written before the deletion and confirmed failing on the then-current
+tree, so the check is known to catch this rather than merely to pass now. Both
+directions were exercised.
+
+This is the same shape as amendment C: the reviewer found this by reading, and
+reading is exactly what is unreliable about an unreferenced byte. A set
+difference is not.
