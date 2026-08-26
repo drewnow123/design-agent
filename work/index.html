@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Builds</title>
+<meta name="description" content="Every project this design pipeline has built, one entry per brief, with its documents and their paths.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230B0F0E'/%3E%3Crect%20x='4'%20y='15'%20width='14'%20height='2'%20fill='%23333E3B'/%3E%3Crect%20x='21'%20y='15'%20width='7'%20height='2'%20fill='%23A2ADAA'/%3E%3C/svg%3E">
+
+<link rel="preload" href="fonts/instrument-sans-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+<style>
+/* Builds: the register of work/.
+ *
+ * One rule runs through this file: a line on this page does a job or it is
+ * not drawn. The leader ties a name to its path and expresses rank by its
+ * indent; the single rule under the head separates the page's own voice from
+ * the register. There is no third line, no card, no shadow and no elevation
+ * token, because this page holds no objects. It is a surface you read and
+ * leave. The console at work/agent-console/ is the surface that holds things,
+ * and its furniture belongs there.
+ *
+ * Spacing is the console's six steps: 4 / 8 / 14 / 22 / 36 / 56.
+ * The focus ring is an outline, never a shadow.
+ */
+
+/* ---------------------------------------------------------------- fonts */
+
+/* Three voices. The system speaks in one, documents speak in another, and
+   machine literals speak in a third. A DIRECTION.md is titled in Newsreader
+   because it is a document; a project is named in Instrument Sans because the
+   page is naming it; every path is Geist Mono because a path is a literal.
+   That is the whole taxonomy, and it is why no icon is needed or allowed.
+
+   The italic is not loaded. Nothing on this page is set in it. */
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("fonts/instrument-sans-var-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Newsreader";
+  src: url("fonts/newsreader-var-latin.woff2") format("woff2");
+  font-weight: 380 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("fonts/geist-mono-var-latin.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The four metric matched fallbacks, copied verbatim out of
+   work/agent-console/styles.css rather than re-derived. Every number was read
+   out of the head, hhea and OS/2 tables of the real font files, so a swap does
+   not move a row. */
+
+@font-face {
+  font-family: "Instrument Fallback";
+  src: local("Segoe UI"), local("Helvetica Neue"), local("Arial");
+  size-adjust: 102.0%;      /* Instrument Sans x 51.00 over Segoe UI x 50.00 */
+  ascent-override: 95.10%;  /* 97.00 over 1.020 */
+  descent-override: 24.51%; /* 25.00 over 1.020 */
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Newsreader Fallback";
+  src: local("Georgia"), local("Times New Roman");
+  size-adjust: 88.49%;      /* Newsreader x 42.60 over Georgia x 48.14 */
+  ascent-override: 83.06%;  /* 73.50 over 0.8849 */
+  descent-override: 29.95%; /* 26.50 over 0.8849 */
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Newsreader Fallback";
+  src: local("Georgia Italic"), local("Times New Roman Italic");
+  font-style: italic;
+  size-adjust: 88.49%;
+  ascent-override: 83.06%;
+  descent-override: 29.95%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Consolas"), local("SF Mono"), local("Menlo");
+  size-adjust: 108.12%;     /* Geist Mono x 53.00 over Consolas x 49.02 */
+  ascent-override: 92.95%;  /* 100.50 over 1.0812 */
+  descent-override: 27.28%; /* 29.50 over 1.0812 */
+  line-gap-override: 0%;
+}
+
+/* --------------------------------------------------------------- tokens */
+
+/* The console's neutrals, taken verbatim. Two surfaces of one tool with
+   different greens would be a defect. Only the tokens this page uses are
+   declared, so the ones it must not use cannot be reached for: there is no
+   elevation scale here, no radius above 8px, no spring and no attention hue.
+   Nothing on this page ever needs doing, so the colour that means your move
+   is not spent here. */
+
+:root {
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 14px;
+  --s4: 22px;
+  --s5: 36px;
+  --s6: 56px;
+
+  --r-2: 8px;
+  --indent: 24px;
+
+  /* Not the console's 1240px. A leader running that far stops being a leader
+     and becomes a road, and these are one line entries with nothing to fill
+     the width with. */
+  --column: 820px;
+
+  --font-system: "Instrument Sans", "Instrument Fallback", system-ui, sans-serif;
+  --font-doc: "Newsreader", "Newsreader Fallback", Georgia, serif;
+  --font-mono: "Geist Mono", "Geist Fallback", ui-monospace, monospace;
+
+  /* Every weight steps down by 20 units in dark mode. Light text on a dark
+     ground reads optically heavier, and a variable axis is the honest way to
+     pay for that rather than jumping to the next named weight. */
+  --w-reg: 430;
+  --w-med: 520;
+  --w-strong: 600;
+  --w-doc: 390;
+
+  /* dark, designed first */
+  --bg: #0B0F0E;
+  --surface-1: #121716;
+  --ink: #E6EDEB;
+  --ink-2: #A2ADAA;
+  --ink-3: #7C8783;
+  --rule: #222A28;
+  --rule-strong: #333E3B;
+  --live: #45DDD0;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --t-quick: 140ms;
+
+  color-scheme: dark;
+}
+
+/* Light, reached two ways from one set of values. An explicit choice is an
+   attribute on <html>; no attribute at all means nobody has chosen one, and
+   then the machine's own preference decides. Writing it this way is what makes
+   the page right with JavaScript switched off, where the attribute is never
+   set. The markup used to carry data-theme="dark" instead, so a machine that
+   prefers light was served a dark page and, with no script running, no way
+   back. */
+
+:root[data-theme="light"] {
+  --bg: #EDF1EF;
+  --surface-1: #F6F9F8;
+  --ink: #101614;
+  --ink-2: #424D4A;
+  --ink-3: #5F6C68;
+  --rule: #DBE3DF;
+  --rule-strong: #C3CCC8;
+  --live: #0E7C74;
+
+  --w-reg: 450;
+  --w-med: 540;
+  --w-strong: 620;
+  --w-doc: 400;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #EDF1EF;
+    --surface-1: #F6F9F8;
+    --ink: #101614;
+    --ink-2: #424D4A;
+    --ink-3: #5F6C68;
+    --rule: #DBE3DF;
+    --rule-strong: #C3CCC8;
+    --live: #0E7C74;
+
+    --w-reg: 450;
+    --w-med: 540;
+    --w-strong: 620;
+    --w-doc: 400;
+
+    color-scheme: light;
+  }
+}
+
+/* ----------------------------------------------------------------- base */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-system);
+  font-size: 16px;
+  font-optical-sizing: auto;
+  font-synthesis-weight: none;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 100;
+}
+
+.page {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: var(--s6) var(--s4) 0;
+}
+
+/* ------------------------------------------------------------ page head */
+
+/* Three elements and no more: the title, one sentence, and a hairline. No
+   search field with ten things to search, no project count, no date claiming
+   a freshness the file does not have. */
+
+.head {
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--rule);
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: -0.018em;
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
+}
+
+.lede {
+  margin: var(--s3) 0 0;
+  max-width: 60ch;
+  font-family: var(--font-doc);
+  font-size: 17px;
+  line-height: 1.6;
+  font-variation-settings: "wght" var(--w-doc);
+}
+
+/* A literal inside a sentence is still a literal, so it takes the third
+   voice, at the size that keeps its x height level with the serif around it. */
+.lit {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-variation-settings: "wght" 400;
+}
+
+/* The console's link rule, unchanged, and it applies only inside prose. A row
+   cannot take it, because a horizontal line already runs through every row and
+   a second one would be mud. */
+.lede a,
+.gloss a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: from-font;
+}
+
+/* ------------------------------------------------------------- register */
+
+.register {
+  list-style: none;
+  margin: var(--s5) 0 0;
+  padding: 0;
+}
+
+.project + .project {
+  margin-top: var(--s5);
+}
+
+/* The documents are a real nested list inside their project's item, so the
+   parent and child relation that is the whole claim of this page reaches a
+   screen reader rather than being implied by padding. */
+.docs {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0 0 0 var(--indent);
+}
+
+.gloss {
+  margin: var(--s2) 0 0 var(--indent);
+  max-width: 60ch;
+  font-family: var(--font-doc);
+  font-size: 17px;
+  line-height: 1.6;
+  font-variation-settings: "wght" var(--w-doc);
+}
+
+/* ------------------------------------------------------------- the rows */
+
+/* Name at the left, leader, path flush right. The row is one link and the
+   negative inline margin is what lets its hover fill breathe past the text
+   without moving the flush column off the edge of the measure. */
+
+.row {
+  display: flex;
+  /* Never between the items. Wrapping here is what left a leader alone on the
+     first line, running to the right margin and ending in nothing, with its
+     path underneath it: measured at every width from 621px to 758px on the
+     one row long enough to trigger it. A name or a clause that runs out of
+     room now wraps inside itself, the leader stays tied to the first line it
+     was drawn on and the path stays flush right, which is what a contents page
+     has always done with a long title. The two line collapse below 620px is a
+     decision, so it is made once by the media query rather than by whatever
+     the longest row happens to measure. */
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: var(--s1) var(--s2);
+  margin-inline: calc(var(--s2) * -1);
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--r-2);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition:
+    background-color var(--t-quick) var(--ease-standard),
+    outline-color var(--t-quick) var(--ease-standard);
+}
+
+/* Two signals on interaction and one of them is independent of colour. Rows
+   do not lift: a page of hairline rows that bounce under the mouse feels
+   loose, and nothing here is an object to be picked up. */
+.row:hover,
+.row:focus-visible {
+  background-color: var(--surface-1);
+}
+
+.row:focus-visible {
+  outline-color: var(--live);
+}
+
+.row:hover .name,
+.row:focus-visible .name {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: from-font;
+}
+
+.name {
+  font-size: 16.5px;
+  line-height: 22px;
+  letter-spacing: -0.006em;
+  font-variation-settings: "wght" var(--w-med), "wdth" 100;
+  /* The name can always give way in the end. Refusing to let it shrink keeps
+     it on one line under pressure, and it was tried, but then a long name
+     beside a long path pushes the path off the edge and the page scrolls
+     sideways, which is worse than a name on two lines: the path is the
+     locator and it is the reason the row is there. So the name shrinks last
+     (see .clause) rather than never. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* aria-current tells a screen reader which row points at the page it is
+   already on. This is the sighted half of the same sentence: one step up the
+   weight scale the page already holds, which is how a contents page marks the
+   sheet you are standing on. Not a badge, not a dot, not a second colour and
+   not an icon, because none of those are available here. */
+.row[aria-current="page"] .name {
+  font-variation-settings: "wght" var(--w-strong), "wdth" 100;
+}
+
+/* A document is titled in the document face, because it is a document. */
+.row-doc .name {
+  font-family: var(--font-doc);
+  font-size: 15.5px;
+  line-height: 22px;
+  letter-spacing: normal;
+  font-variation-settings: "wght" var(--w-doc);
+  color: var(--ink-2);
+}
+
+.clause {
+  font-family: var(--font-doc);
+  font-size: 15.5px;
+  line-height: 22px;
+  font-variation-settings: "wght" var(--w-doc);
+  color: var(--ink-3);
+  min-width: 0;
+  /* The clause gives way before the name does. Flex shares a shortfall in
+     proportion to width as well as to weight, so an ordinary weight would
+     take a quarter of it out of the name and break a two word title in half
+     while its own supporting clause sat on one line. At this weight the name
+     keeps its width until the clause has given up everything it has, and only
+     then starts wrapping itself. */
+  flex-shrink: 1000;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  font-variation-settings: "wght" 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+/* The leader is furniture and is declared as such: it carries nothing the
+   name at its left and the path at its right do not already carry. Aligned to
+   the baseline with no height of its own, so the hairline lands on the same
+   line the two texts sit on and ties them together rather than crossing them. */
+.leader {
+  flex: 1 1 var(--s4);
+  min-width: var(--s4);
+  height: 0;
+  align-self: baseline;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+/* One string, never truncated, always copy pasteable. The filenames end flush
+   right and the dim directory prefixes trail ragged to the left of them, which
+   reads correctly and keeps every path complete. */
+.path {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  font-variation-settings: "wght" 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.path .dir {
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------- the foot */
+
+.foot {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) var(--s6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3) var(--s4);
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.004em;
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  color: var(--ink-3);
+}
+
+.colophon {
+  margin: 0;
+  max-width: 60ch;
+}
+
+/* Without JavaScript this control cannot do anything, so without JavaScript
+   it is not drawn. The boot script sets the class in the head, before the body
+   is parsed, so nothing appears and then disappears. */
+.theme {
+  display: none;
+  align-items: baseline;
+  gap: var(--s1);
+}
+
+:root.js .theme {
+  display: flex;
+}
+
+/* Plain text, at the foot, never a floating icon button. */
+.themebtn {
+  appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: var(--s1);
+  font: inherit;
+  font-family: var(--font-system);
+  font-variation-settings: "wght" var(--w-reg), "wdth" 96;
+  color: inherit;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color var(--t-quick) var(--ease-standard);
+}
+
+.themebtn[aria-pressed="true"] {
+  color: var(--ink-2);
+}
+
+.themebtn:hover,
+.themebtn:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: from-font;
+}
+
+.themebtn:focus-visible {
+  outline-color: var(--live);
+}
+
+/* ------------------------------------------------------------- narrower */
+
+/* Below 620px the leader has no room and is cut. The row becomes two lines,
+   the path sitting under the name at the name's own indent, both flush left.
+   A flush right path with two inches of nothing between it and its name reads
+   as a bug rather than as a leader that lost its rule. */
+
+@media (max-width: 620px) {
+  :root {
+    --indent: 12px;
+  }
+
+  .page {
+    padding-top: var(--s5);
+  }
+
+  .leader {
+    display: none;
+  }
+
+  .path {
+    flex: 0 0 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .row {
+    flex-wrap: wrap;
+    min-height: 48px;
+    align-content: center;
+    padding-block: var(--s2);
+  }
+
+  /* The two buttons are the only controls here that are not links, and they
+     were the smallest thing to press on a page where everything else had
+     already been given a 48px target. */
+  .theme {
+    align-items: center;
+  }
+
+  .themebtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    min-width: 48px;
+    padding-inline: var(--s2);
+  }
+
+  .lede,
+  .gloss {
+    max-width: none;
+    font-size: 16px;
+  }
+
+  .row-doc .name,
+  .clause {
+    font-size: 16px;
+  }
+}
+</style>
+
+<script>
+  // Resolve the theme before first paint so the page never flashes the wrong
+  // ground. Reads only localStorage and the OS preference.
+  //
+  // The key is `handoff.theme` and the values are `light` and `dark`, which is
+  // exactly what work/agent-console/app.js writes. The two surfaces are served
+  // from the same origin, so sharing the key means they agree on theme instead
+  // of disagreeing across a click.
+  (function () {
+    var root = document.documentElement;
+    // The theme control is drawn only where it can work, and this runs before
+    // the body is parsed, so it never appears and then goes away.
+    root.className = "js";
+    var saved = null;
+    try { saved = localStorage.getItem("handoff.theme"); } catch (e) { saved = null; }
+    if (saved === "light" || saved === "dark") {
+      root.setAttribute("data-theme", saved);
+    }
+    // No stored choice means no attribute at all, and the stylesheet's own
+    // prefers-color-scheme rule decides. Writing the machine's preference into
+    // the attribute here would freeze it, and it would also make an inherited
+    // preference indistinguishable from a chosen one.
+  })();
+</script>
+</head>
+<body>
+
+<main class="page">
+
+<div class="head">
+<h1>Builds</h1>
+<p class="lede">Everything this pipeline has built, one entry per brief, most recently written first. Nothing on this page is live. Where a project has got to is in the console, at <a href="http://127.0.0.1:8790/"><span class="lit">127.0.0.1:8790</span></a>.</p>
+</div>
+
+<ul class="register">
+<li class="project">
+  <a class="row row-head" href="index.html" aria-label="This page, index.html" aria-current="page">
+    <span class="name">This page</span>
+    <span class="leader" aria-hidden="true"></span>
+    <span class="path">index.html</span>
+  </a>
+  <p class="gloss">The register you are reading. Its brief was to replace the server&#x27;s own directory listing, which named six directories and said what none of them were.</p>
+  <ul class="docs">
+    <li>
+      <a class="row row-doc" href="work-index-design/DIRECTION.md" aria-label="Direction, work-index-design/DIRECTION.md">
+        <span class="name">Direction</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">work-index-design/</span>DIRECTION.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="work-index-design/DECISIONS.md" aria-label="Amendments A and B, work-index-design/DECISIONS.md">
+        <span class="name">Amendments A and B</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">work-index-design/</span>DECISIONS.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="work-index-design/FINDINGS.json" aria-label="Findings, 24 items, work-index-design/FINDINGS.json">
+        <span class="name">Findings</span>
+        <span class="count">24 items</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">work-index-design/</span>FINDINGS.json</span>
+      </a>
+    </li>
+  </ul>
+</li>
+<li class="project">
+  <a class="row row-head" href="tool-library/" aria-label="Fifth Street Tool Library, tool-library/">
+    <span class="name">Fifth Street Tool Library</span>
+    <span class="leader" aria-hidden="true"></span>
+    <span class="path">tool-library/</span>
+  </a>
+  <p class="gloss">A one page site for a neighborhood tool lending library. Built to give the console a real brief to carry, and it went through all three stages.</p>
+  <ul class="docs">
+    <li>
+      <a class="row row-doc" href="tool-library-design/DIRECTION.md" aria-label="Direction, tool-library-design/DIRECTION.md">
+        <span class="name">Direction</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">tool-library-design/</span>DIRECTION.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="tool-library-design/FINDINGS.json" aria-label="Findings, 10 items, tool-library-design/FINDINGS.json">
+        <span class="name">Findings</span>
+        <span class="count">10 items</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">tool-library-design/</span>FINDINGS.json</span>
+      </a>
+    </li>
+  </ul>
+</li>
+<li class="project">
+  <a class="row row-head" href="agent-console/" aria-label="Front End Agents, agent-console/">
+    <span class="name">Front End Agents</span>
+    <span class="leader" aria-hidden="true"></span>
+    <span class="path">agent-console/</span>
+  </a>
+  <p class="gloss">The console this pipeline reports into. It reads the pipeline&#x27;s state file and writes your answers back. Opened from here it has no server behind it, so it shows sample data.</p>
+  <ul class="docs">
+    <li>
+      <a class="row row-doc" href="agent-console-design/DIRECTION.md" aria-label="Direction, agent-console-design/DIRECTION.md">
+        <span class="name">Direction</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">agent-console-design/</span>DIRECTION.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="agent-console-design/DIRECTION-2.md" aria-label="The flow, agent-console-design/DIRECTION-2.md">
+        <span class="name">The flow</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">agent-console-design/</span>DIRECTION-2.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="agent-console-design/DIRECTION-3.md" aria-label="The visual language, agent-console-design/DIRECTION-3.md">
+        <span class="name">The visual language</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">agent-console-design/</span>DIRECTION-3.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="agent-console-design/DECISIONS.md" aria-label="Amendments A to I, agent-console-design/DECISIONS.md">
+        <span class="name">Amendments A to I</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">agent-console-design/</span>DECISIONS.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="agent-console-design/DECISIONS-2.md" aria-label="Decisions, the rebuild, agent-console-design/DECISIONS-2.md">
+        <span class="name">Decisions, the rebuild</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path"><span class="dir">agent-console-design/</span>DECISIONS-2.md</span>
+      </a>
+    </li>
+    <li>
+      <a class="row row-doc" href="agent-console-check/" aria-label="Drawing checks, loads the console at five widths and measures what it drew, agent-console-check/">
+        <span class="name">Drawing checks</span>
+        <span class="clause">loads the console at five widths and measures what it drew</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="path">agent-console-check/</span>
+      </a>
+    </li>
+  </ul>
+</li>
+</ul>
+
+</main>
+
+<footer class="foot">
+<p class="colophon">Written by <span class="lit">scripts/build-index.py</span> from the directories under <span class="lit">work/</span>. The sentences are written by hand.</p>
+<div class="theme" role="group" aria-label="Theme">
+<button type="button" class="themebtn" data-theme-set="light">light</button>
+<span aria-hidden="true">/</span>
+<button type="button" class="themebtn" data-theme-set="dark">dark</button>
+</div>
+</footer>
+
+<script>
+  // Two buttons rather than one toggle, because a toggle labelled with the
+  // theme you are not in has to be read twice. Each button says the theme it
+  // sets, and the one you are in is the one that is pressed.
+  (function () {
+    var root = document.documentElement;
+    var buttons = document.querySelectorAll("[data-theme-set]");
+    var os = window.matchMedia("(prefers-color-scheme: light)");
+
+    function stored() {
+      try { return localStorage.getItem("handoff.theme"); } catch (e) { return null; }
+    }
+
+    // What the reader is actually looking at, which is the stored choice if
+    // there is one and the machine's preference if there is not.
+    function effective() {
+      return root.getAttribute("data-theme") || (os.matches ? "light" : "dark");
+    }
+
+    function sync() {
+      var now = effective();
+      var chosen = root.getAttribute("data-theme") !== null;
+      for (var i = 0; i < buttons.length; i++) {
+        var mine = buttons[i].getAttribute("data-theme-set") === now;
+        buttons[i].setAttribute("aria-pressed", mine ? "true" : "false");
+        buttons[i].setAttribute(
+          "title",
+          mine && chosen
+            ? "press again to follow the system"
+            : "set the " + buttons[i].getAttribute("data-theme-set") + " theme");
+      }
+    }
+
+    function apply(next) {
+      if (next === null) {
+        root.removeAttribute("data-theme");
+        try { localStorage.removeItem("handoff.theme"); } catch (e) { /* ignore */ }
+      } else {
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("handoff.theme", next); } catch (e) { /* ignore */ }
+      }
+      sync();
+    }
+
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function (ev) {
+        var next = ev.currentTarget.getAttribute("data-theme-set");
+        // Pressing the theme you are already holding is the way back out to
+        // the system preference. A one way control that can only ever be
+        // overridden is a setting you cannot unset.
+        apply(root.getAttribute("data-theme") === next ? null : next);
+      });
+    }
+
+    // While nothing is stored the page follows the machine, so it has to keep
+    // following it when it changes rather than until the next reload.
+    if (os.addEventListener) { os.addEventListener("change", sync); }
+    else if (os.addListener) { os.addListener(sync); }
+
+    // The console writes the same key on the same origin. A theme changed
+    // there reaches this tab as it happens instead of at the next load.
+    window.addEventListener("storage", function (ev) {
+      if (ev.key !== null && ev.key !== "handoff.theme") { return; }
+      var saved = stored();
+      if (saved === "light" || saved === "dark") { root.setAttribute("data-theme", saved); }
+      else { root.removeAttribute("data-theme"); }
+      sync();
+    });
+
+    sync();
+  })();
+</script>
+</body>
+</html>

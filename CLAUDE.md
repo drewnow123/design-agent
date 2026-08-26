@@ -83,6 +83,7 @@ python scripts/handoff.py stop    <slug> --stage <stage>    a stage failed
 python scripts/handoff.py note    <slug> "you sent it back" --quote "..."
 python scripts/handoff.py drain   [--archive]               read the user's answers
 python scripts/handoff.py show                              the board, as text
+python scripts/build-index.py                               after any project gains or loses files
 ```
 
 **At every handoff, `hold` is how you stop.** The four shapes map onto the four
@@ -102,6 +103,12 @@ a void.
 
 Recording a stage is not a substitute for the handoff rule above. You still
 stop and wait for a human turn; `hold` is just how the waiting becomes visible.
+
+`build-index.py` regenerates `work/index.html`, which is the other surface a
+person reads. It is safe to run repeatedly, prints `index.html unchanged` when
+there is nothing to do, and needs a name and a gloss in `work/index.json` for
+any new project, because it discovers structure from disk but cannot write
+prose.
 
 Run the console itself with the `console` launch config, or
 `python scripts/console.py`. Deployment notes are in `deploy/README.md`.

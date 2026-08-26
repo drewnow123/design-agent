@@ -1,0 +1,61 @@
+{
+  "_": [
+    "The written half of work/index.html. scripts/build-index.py discovers the",
+    "other half by walking work/, and it will render a directory that is",
+    "missing from this file rather than dropping it, so nothing here is",
+    "load bearing for correctness. It is load bearing for whether the page is",
+    "worth reading.",
+    "",
+    "Two inline forms are available in any sentence: `literal` sets a machine",
+    "literal in the mono face, and [label](href) is a link. A clause cannot",
+    "carry a link, because the whole row is already one.",
+    "",
+    "History goes in the sentence, never in a column. A status column cannot",
+    "carry a fact like 'it went through all three stages' honestly, and this",
+    "page shows no state at all."
+  ],
+
+  "page": {
+    "title": "Builds",
+    "description": "Every project this design pipeline has built, one entry per brief, with its documents and their paths.",
+    "lede": "Everything this pipeline has built, one entry per brief, most recently written first. Nothing on this page is live. Where a project has got to is in the console, at [`127.0.0.1:8790`](http://127.0.0.1:8790/)."
+  },
+
+  "projects": {
+    "agent-console": {
+      "name": "Front End Agents",
+      "gloss": "The console this pipeline reports into. It reads the pipeline's state file and writes your answers back. Opened from here it has no server behind it, so it shows sample data.",
+      "attachments": {
+        "agent-console-design/DIRECTION.md": { "name": "Direction" },
+        "agent-console-design/DIRECTION-2.md": { "name": "The flow" },
+        "agent-console-design/DIRECTION-3.md": { "name": "The visual language" },
+        "agent-console-design/DECISIONS.md": { "name": "Amendments A to I" },
+        "agent-console-design/DECISIONS-2.md": { "name": "Decisions, the rebuild" },
+        "agent-console-check/": {
+          "name": "Drawing checks",
+          "clause": "loads the console at five widths and measures what it drew"
+        }
+      }
+    },
+
+    "tool-library": {
+      "name": "Fifth Street Tool Library",
+      "gloss": "A one page site for a neighborhood tool lending library. Built to give the console a real brief to carry, and it went through all three stages.",
+      "attachments": {
+        "tool-library-design/DIRECTION.md": { "name": "Direction" },
+        "tool-library-design/FINDINGS.json": { "name": "Findings" }
+      }
+    },
+
+    "work-index": {
+      "name": "This page",
+      "path": "index.html",
+      "gloss": "The register you are reading. Its brief was to replace the server's own directory listing, which named six directories and said what none of them were.",
+      "attachments": {
+        "work-index-design/DIRECTION.md": { "name": "Direction" },
+        "work-index-design/DECISIONS.md": { "name": "Amendments A and B" },
+        "work-index-design/FINDINGS.json": { "name": "Findings" }
+      }
+    }
+  }
+}
