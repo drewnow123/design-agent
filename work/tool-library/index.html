@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en" data-theme-pref="system">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fifth Street Tool Library</title>
+<meta name="description" content="A neighborhood tool-lending library at 412 Fifth Street. Free to join. Open Tuesday and Thursday evenings and Saturday mornings.">
+<style>
+/* Fifth Street Tool Library.
+ *
+ * The rule: prose is prose, and anything you would read off a catalog card
+ * is monospaced. Serif carries the sentences, mono carries every literal —
+ * hours, fees, shelf codes, dates, counts. If a string is a fact you would
+ * look up rather than read, it is mono.
+ *
+ * Paper, not white. Hairline rules, never gray boxes. One accent, used
+ * twice: the membership call to action and the "on loan" state.
+ */
+
+@font-face {
+  font-family: "Newsreader";
+  src: url("fonts/newsreader-var-latin.woff2") format("woff2");
+  /* The shipped file is instanced to 380-700, so the descriptor says so.
+     A wider descriptor would let a rule ask for a weight the file cannot
+     draw, and font-synthesis is off below. */
+  font-weight: 380 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("fonts/geist-mono-var-latin.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --paper:    #f4f1ea;
+  --ink:      #1c1a17;
+  --ink-soft: #55504733;   /* hairline rules */
+  --ink-mute: #55504f;     /* secondary prose */
+  --stamp:    #a8321e;
+
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --mono:  "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure: 62ch;
+  color-scheme: light;
+}
+
+/* Dark is ink-on-charcoal and keeps the same red. Defined for the system
+   default first, then again for the explicit toggle so it wins both ways. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:    #171613;
+    --ink:      #e8e3d8;
+    --ink-soft: #e8e3d82e;
+    --ink-mute: #a29c90;
+    --stamp:    #e0664c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:    #171613;
+  --ink:      #e8e3d8;
+  --ink-soft: #e8e3d82e;
+  --ink-mute: #a29c90;
+  --stamp:    #e0664c;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-synthesis-weight: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
+}
+
+/* ------------------------------------------------------------- masthead */
+
+/* The only decoration on the page, and it carries real information: the
+   last four dates the door was open, struck through the way a due-date
+   stamp card is struck as it is reissued. */
+
+.masthead { margin-bottom: 3rem; }
+
+.masthead h1 {
+  font-size: clamp(2.25rem, 8vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  margin: 0 0 1rem;
+}
+
+.stamp {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--ink-mute);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ink-soft);
+}
+.stamp span { text-decoration: line-through; text-decoration-thickness: 1px; }
+.stamp .live { text-decoration: none; color: var(--ink); font-weight: 500; }
+
+/* -------------------------------------------------------------- section */
+
+section { margin-top: 2.75rem; }
+
+.label:focus-visible { outline: 2px solid var(--stamp); outline-offset: 3px; }
+
+.label {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-mute);
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ink-soft);
+  margin: 0 0 1rem;
+}
+
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 1.1875rem; }
+
+/* -------------------------------------------------------------- catalog */
+
+/* A catalog is a table. It was never a card grid. */
+
+.catalog-wrap { overflow-x: auto; }
+.catalog-wrap:focus-visible { outline: 2px solid var(--stamp); outline-offset: 3px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+th {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-mute);
+  text-align: left;
+  padding: 0 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--ink-soft);
+  white-space: nowrap;
+}
+td {
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1px solid var(--ink-soft);
+  vertical-align: baseline;
+}
+td:last-child, th:last-child { padding-right: 0; }
+tbody tr:last-child td { border-bottom: none; }
+
+.shelf { font-family: var(--mono); font-size: 0.8125rem; white-space: nowrap; }
+.status {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--ink-mute);
+}
+.status.out { color: var(--stamp); }
+
+.count {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-mute);
+  margin-top: 0.75rem;
+}
+
+/* ------------------------------------------------------------ fee table */
+
+dl.fees { margin: 0; }
+dl.fees div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--ink-soft);
+}
+dl.fees div:last-child { border-bottom: none; }
+dl.fees dt { margin: 0; }
+dl.fees dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- join */
+
+.join {
+  display: inline-block;
+  margin-top: 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  background: var(--stamp);
+  text-decoration: none;
+  padding: 0.7rem 1.25rem;
+}
+.join:hover { opacity: 0.88; }
+.join:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ----------------------------------------------------------------- foot */
+
+footer {
+  margin-top: 3.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-mute);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#theme {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--ink-soft);
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+#theme:hover { border-color: var(--ink-mute); }
+#theme:focus-visible { outline: 2px solid var(--stamp); outline-offset: 2px; }
+
+a { color: inherit; text-underline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <h1>Fifth&nbsp;Street Tool&nbsp;Library</h1>
+    <p class="stamp" aria-label="Recent open days">
+      <span>18 AUG</span><span>20 AUG</span><span>22 AUG</span><span class="live">25 AUG</span>
+    </p>
+  </header>
+
+  <section aria-labelledby="about">
+    <h2 class="label" id="about">What this is</h2>
+    <p class="lede">A room behind the hardware store on Fifth with about two
+    hundred tools in it. You borrow one for a week, you bring it back, you do
+    not buy a tile saw you will use once.</p>
+    <p>Anyone who lives in the neighborhood can join, and joining is free — no
+    income check, no proof of ownership, no deposit except on the four heavy
+    items noted below. Bring something with your address on it the first time.
+    Volunteers staff the desk; nobody here is paid.</p>
+  </section>
+
+  <section aria-labelledby="catalog">
+    <h2 class="label" id="catalog">Catalog, in part</h2>
+    <div class="catalog-wrap" tabindex="0" role="region" aria-labelledby="catalog">
+      <table>
+        <thead>
+          <tr><th scope="col">Shelf</th><th scope="col">Item</th><th scope="col">Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="shelf">PWR 02</td><td>Cordless drill, 18V, two batteries</td><td class="status">on shelf</td></tr>
+          <tr><td class="shelf">PWR 07</td><td>Circular saw, 7¼ in.</td><td class="status out">out, due 27 Aug</td></tr>
+          <tr><td class="shelf">PWR 11</td><td>Random orbital sander</td><td class="status">on shelf</td></tr>
+          <tr><td class="shelf">HND 03</td><td>Pipe wrench set, 10–24 in.</td><td class="status">on shelf</td></tr>
+          <tr><td class="shelf">GDN 05</td><td>Rear-tine tiller</td><td class="status out">out, due 1 Sep</td></tr>
+          <tr><td class="shelf">GDN 09</td><td>Extension pruner, 12 ft</td><td class="status">on shelf</td></tr>
+          <tr><td class="shelf">LDR 01</td><td>Extension ladder, 24 ft</td><td class="status out">out, due 29 Aug</td></tr>
+          <tr><td class="shelf">MSR 04</td><td>Moisture meter</td><td class="status">on shelf</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="count">8 of 214 shown. The full list is a binder on the desk.</p>
+  </section>
+
+  <section aria-labelledby="fees">
+    <h2 class="label" id="fees">Membership and fees</h2>
+    <dl class="fees">
+      <div><dt>Membership</dt><dd>free</dd></div>
+      <div><dt>Loan period</dt><dd>7 days</dd></div>
+      <div><dt>Renewals</dt><dd>2, if nobody is waiting</dd></div>
+      <div><dt>Late return</dt><dd>$1 / day, capped at $20</dd></div>
+      <div><dt>Deposit — ladder, tiller, generator, tile saw</dt><dd>$20, refunded</dd></div>
+      <div><dt>Broken or lost</dt><dd>at cost, and we will help you fix it first</dd></div>
+    </dl>
+    <a class="join" href="#hours">Join at the desk &mdash; hours below</a>
+  </section>
+
+  <section aria-labelledby="hours">
+    <h2 class="label" id="hours" tabindex="-1">Hours and address</h2>
+    <dl class="fees">
+      <div><dt>Tuesday</dt><dd>6–9 pm</dd></div>
+      <div><dt>Thursday</dt><dd>6–9 pm</dd></div>
+      <div><dt>Saturday</dt><dd>9 am – 2 pm</dd></div>
+      <div><dt>Sunday, Monday, Wednesday, Friday</dt><dd>closed</dd></div>
+    </dl>
+    <p style="margin-top:1.25rem">412 Fifth Street, rear entrance — the green
+    door in the alley, not the storefront. Ring the bell if the door is shut;
+    the desk cannot always hear it over the shop.</p>
+  </section>
+
+  <footer>
+    <span>Fifth Street Tool Library · a volunteer project</span>
+    <button id="theme" type="button">Dark</button>
+  </footer>
+
+</div>
+
+<script>
+// The only script on the page. Reads once, writes once, and works fine if
+// storage throws — a private window still gets a functioning toggle, it
+// just does not remember.
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById("theme");
+  var stored = null;
+  try { stored = localStorage.getItem("fstl-theme"); } catch (e) {}
+  if (stored === "dark" || stored === "light") root.setAttribute("data-theme", stored);
+
+  function dark() {
+    var t = root.getAttribute("data-theme");
+    if (t) return t === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function sync() {
+    btn.textContent = dark() ? "Light" : "Dark";
+  }
+  btn.addEventListener("click", function () {
+    var next = dark() ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("fstl-theme", next); } catch (e) {}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

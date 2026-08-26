@@ -1,0 +1,52 @@
+[
+  {
+    "severity": "must-fix",
+    "text": "The catalog table scrolls horizontally on narrow screens, but the scroll container cannot be reached by keyboard. .catalog-wrap sets overflow-x:auto with no tabindex=\"0\" and no accessible name, so a keyboard-only visitor on a phone-width viewport can never scroll right to the Status column — the one column that says whether a tool is actually available. WCAG 2.1.1.",
+    "where": "work/tool-library/index.html:147,285"
+  },
+  {
+    "severity": "must-fix",
+    "text": "The one call to action on the page is broken and mislabelled. \"Join at the desk\" is a mailto: link pointing at desk@fifthstreettools.example — a placeholder domain that will never receive mail. The label tells you to walk in; the behaviour opens a mail client. Pick one: make it a real address, or make it plain text next to the hours.",
+    "where": "work/tool-library/index.html:315"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "The masthead stamp carries its meaning only visually. The strike-through that distinguishes past open days from today is not announced, and the aria-label sits on a <p>, which has no ARIA role and so does not reliably expose it. A screen reader hears \"18 AUG 20 AUG 22 AUG 25 AUG\" with no indication that these are open days or which one is today. This was the direction's single deliberate flourish and the justification for it was that it carries real information — right now it carries that information to sighted users only.",
+    "where": "work/tool-library/index.html:267"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "No <main> landmark. All five sections sit directly inside div.page, so assistive tech has no primary region to jump to and no way past the masthead.",
+    "where": "work/tool-library/index.html:263"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "dl.fees is reused verbatim for the hours block. The visual pattern is genuinely shared, but the class is named for one of its two uses, so the next person adjusting fee-row styling will silently restyle the opening hours. Rename to something like .ledger and let both use it.",
+    "where": "work/tool-library/index.html:307,320"
+  },
+  {
+    "severity": "worth fixing",
+    "text": "The catalog table has no <caption>. \"Catalog, in part\" is an h2 sitting outside the table, so when a screen reader enters table navigation the table itself is unlabelled — and the caption is also where \"8 of 214\" belongs, rather than in a paragraph after it.",
+    "where": "work/tool-library/index.html:286"
+  },
+  {
+    "severity": "nitpick",
+    "text": "data-theme-pref=\"system\" on the <html> element is dead. Nothing reads or writes it; the theme script uses data-theme. It reads like a second, competing theme mechanism.",
+    "where": "work/tool-library/index.html:2"
+  },
+  {
+    "severity": "nitpick",
+    "text": "The prefers-reduced-motion block is dead code. It sets transition:none !important, but the stylesheet defines zero transitions and zero animations — that rule is the only occurrence of the word transition in the file.",
+    "where": "work/tool-library/index.html:257"
+  },
+  {
+    "severity": "nitpick",
+    "text": "A single inline style=\"margin-top:1.25rem\" on the address paragraph, and the only inline style in an otherwise fully class-driven file.",
+    "where": "work/tool-library/index.html:326"
+  },
+  {
+    "severity": "nitpick",
+    "text": "The rule a { color: inherit; text-underline-offset: 2px } matches nothing. The page has exactly one link and it sets its own colour and removes its underline.",
+    "where": "work/tool-library/index.html:255"
+  }
+]
