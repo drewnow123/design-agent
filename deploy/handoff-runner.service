@@ -1,0 +1,71 @@
+# The other half of the console. The console writes an answer into
+# .handoff/responses/ and stops; this watches that directory and wakes Claude
+# Code when something lands. Without it a project sits at `ready` until a
+# person takes a turn in an attached terminal, which is the one thing the
+# console exists to avoid.
+#
+#   sudo cp deploy/handoff-runner.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now handoff-runner
+#
+# Run `python3 scripts/runner.py --check` first. It fails loudly if the
+# installed CLI does not take the flags the runner passes.
+#
+# This service runs an agent unattended against the working tree. It is the
+# console's authority, so it is exactly as trusted as the console is.
+
+[Unit]
+Description=Handoff design pipeline runner
+After=network-online.target handoff.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=handoff
+Group=handoff
+WorkingDirectory=/srv/my-design-agent
+ExecStart=/usr/bin/python3 scripts/runner.py
+
+# This account's home IS the repository, which is where the CLI lives and
+# where it keeps its credentials and session history. systemd does not set
+# HOME from passwd, and without it every run starts unauthenticated.
+Environment=HOME=/srv/my-design-agent
+Environment=PATH=/srv/my-design-agent/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+# A stage can legitimately run long. This bounds a run that has hung rather
+# than one that is merely slow.
+Environment=HANDOFF_RUN_TIMEOUT=1800
+
+# acceptEdits lets it write files without a prompt while still stopping at
+# the genuinely destructive tools.
+Environment=HANDOFF_PERMISSION_MODE=acceptEdits
+
+Restart=on-failure
+RestartSec=10s
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+PrivateDevices=yes
+LockPersonality=yes
+
+# Four deliberate differences from handoff.service, which is the stricter
+# unit next door. Each one is required rather than convenient:
+#
+# 1. The whole repository is writable, not just .handoff/. The console only
+#    ever touches its own state; the runner exists so an agent can edit
+#    work/, and the CLI writes its own state to .claude/ and .local/ inside
+#    this same directory.
+# 2. MemoryDenyWriteExecute is NOT set. The CLI is a Node process and V8
+#    needs writable-executable pages to JIT. Setting it kills the run at
+#    startup, and the failure does not name the cause.
+# 3. AF_UNIX is allowed. The CLI talks to its own daemon and pty hosts over
+#    unix sockets, so the console's AF_INET-only list would break it.
+# 4. ProtectHome stays on regardless, because it costs nothing here: this
+#    home is under /srv, so the flag only hides /home, /root and /run/user.
+ReadWritePaths=/srv/my-design-agent
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
