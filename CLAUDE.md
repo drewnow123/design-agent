@@ -62,6 +62,10 @@ skill references are dead text.
 ## Workspace layout
 
 - `work/<project-slug>/` — builds, one directory per brief
+- `references/PRINCIPLES.md` — **Andrew's standing taste, and the defects that
+  keep recurring.** All three subagents are told to read it first. Name it in
+  every subagent prompt anyway: their frontmatter can be edited, and a brief
+  that forgets it is a brief that gets the same faults back.
 - `references/` — brand assets, style guides, existing screenshots to
   calibrate against; point subagents at specific files here
 - `.claude/launch.json` — `static-preview` serves `work/` at
@@ -122,3 +126,12 @@ said to skip further changes).
 If the user asks for fixes after review, apply them yourself or send
 them back to `component-builder` with the specific findings — do not
 re-run the whole pipeline from the strategist.
+
+**Then promote what the project taught into `references/PRINCIPLES.md`.** A
+ruling that would help on an unrelated brief belongs there; one that only makes
+sense for this build stays in its own `DECISIONS.md`. This is the step that
+makes the pipeline get better rather than merely run again, and it is the step
+easiest to skip, because by then the work looks finished.
+
+Keep that file short enough to be read on every run. When adding to it, look
+first for something to cut or merge.
