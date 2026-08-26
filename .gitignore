@@ -21,6 +21,21 @@ __pycache__/
 .claude/*
 !.claude/launch.json
 
+# The subagent definitions are source: CLAUDE.md delegates to them by name, so
+# a clone without them runs every stage inline instead. That is not a theory.
+# The VM clone had exactly this shape, and each stage there recorded itself as
+# "written inline — design-strategist subagent is not installed".
+#
+# Three lines rather than one. `.claude/*` already excluded the agents
+# directory, and git does not descend into an excluded directory, so a bare
+# `!.claude/agents/*.md` would never have been consulted. The directory has to
+# be re-included first. Everything inside it is then excluded again and only
+# the definitions are named back in, so this stays a hole for the three files
+# that belong here rather than an opening for whatever else lands there.
+!.claude/agents/
+.claude/agents/*
+!.claude/agents/*.md
+
 # Claude Code writes a file next to that directory as well as inside it, and
 # it is not just noise: .claude.json carries account and project state. It has
 # no business in a repository, public or private.
